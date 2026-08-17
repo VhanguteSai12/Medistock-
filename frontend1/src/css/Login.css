@@ -1,0 +1,116 @@
+.login-page {
+  min-height: 100vh;
+  width: 100%;
+  background-image: url("/login.png");
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-overlay {
+  width: 100%;
+  min-height: 100vh;
+  background: rgba(0, 90, 160, 0.25);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-box {
+  width: 420px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 40px;
+  border-radius: 15px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.login-box h1 {
+  text-align: center;
+  color: #0066cc;
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.login-title {
+  text-align: center;
+  color: #555;
+  margin-bottom: 30px;
+}
+
+.input-group {
+  margin-bottom: 18px;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 7px;
+  color: #333;
+  font-weight: 600;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 13px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input-group input:focus {
+  border-color: #0066cc;
+}
+
+/* Password Box */
+.password-box {
+  position: relative;
+}
+
+.password-box input {
+  padding-right: 45px;
+}
+
+
+.login-box button {
+  width: 100%;
+  padding: 13px;
+  background: #0066cc;
+  border: none;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 10px;
+}
+
+.login-box button:hover {
+  background: #004a99;
+}
+
+.register-link {
+  text-align: center;
+  margin-top: 22px;
+}
+
+.register-link a {
+  color: #0066cc;
+  font-weight: bold;
+  text-decoration: none;
+  margin-left: 5px;
+}
+
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 500px) {
+  .login-box {
+    width: 90%;
+    padding: 30px 20px;
+  }
+}

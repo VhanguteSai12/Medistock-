@@ -1,0 +1,29 @@
+# Root workspace files (not part of the project)
+*.docx
+*.code-workspace
+Home_page.png
+home.css
+home.jsx
+index.html
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

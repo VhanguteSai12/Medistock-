@@ -1,0 +1,241 @@
+.register-page {
+
+    min-height:100vh;
+    width:100%;
+    background:url("/register.png") center/cover no-repeat;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:120px 20px 40px;
+
+
+}
+
+
+
+.register-overlay {
+
+  width: 100%;
+
+  min-height: 100vh;
+
+ /* background: rgba(0, 90, 160, 0.25); */
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+}
+
+
+
+.register-box{
+
+    width:100%;
+    max-width:420px;
+
+    background:white;
+
+    padding:35px;
+
+    border-radius:18px;
+
+    box-shadow:0 10px 30px rgba(0,0,0,.2);
+
+}
+
+
+.register-box h1 {
+
+  text-align: center;
+
+  color: #0066cc;
+
+  font-size: 32px;
+
+  margin-bottom: 5px;
+
+}
+
+
+
+.register-title {
+
+  text-align: center;
+
+  color: #555;
+
+  margin-bottom: 25px;
+
+}
+
+
+
+.input-group {
+
+  margin-bottom: 15px;
+
+}
+
+
+
+.input-group label {
+
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #333;
+
+  font-weight: 600;
+
+}
+
+
+
+.input-group input,
+.password-box input{
+
+    width:100%;
+    height:48px;
+
+    font-size:16px;
+
+}
+
+
+.input-group input:focus {
+
+  border-color: #0066cc;
+
+}
+
+
+
+.register-box button{
+
+   width: 100%;
+  padding: 13px;
+  background: #0066cc;
+  border: none;
+  color: white;
+  font-size: 17px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 10px;
+
+}
+
+
+.register-box button:hover {
+  background: #004a99;
+}
+
+
+.login-link {
+
+  text-align: center;
+
+  margin-top: 20px;
+
+}
+
+
+
+.login-link a {
+
+  color: #0066cc;
+
+  margin-left: 5px;
+
+  font-weight: bold;
+
+}
+
+.password-box{
+
+  position:relative;
+
+}
+
+
+
+
+.password-box input:focus{
+
+  border-color:#0066cc;
+
+}
+
+@media(max-width:768px){
+
+.register-page{
+
+    padding-top:150px;
+
+}
+
+.register-box{
+
+    max-width:95%;
+
+    padding:25px;
+
+}
+
+.register-box h1{
+
+    font-size:28px;
+
+}
+
+}
+
+@media(max-width:480px){
+
+.register-page{
+
+    padding-top:170px;
+
+}
+
+.register-box{
+
+    padding:20px;
+
+}
+
+.register-box h1{
+
+    font-size:24px;
+
+}
+
+.register-title{
+
+    font-size:14px;
+
+}
+
+.input-group input,
+.password-box input{
+
+    height:45px;
+
+    font-size:15px;
+
+}
+
+.register-box button{
+
+    height:45px;
+
+    font-size:16px;
+
+}
+
+}

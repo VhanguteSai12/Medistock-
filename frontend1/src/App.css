@@ -1,0 +1,44 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background: #f5faff;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+
+/* Common Button Style */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+
+/* Links */
+a {
+  text-decoration: none;
+}
+
+
+/* Page Container */
+.page-container {
+  width: 100%;
+  min-height: 100vh;
+}
+
+
+/* Medical Theme Colors */
+:root {
+  --primary-blue: #0066cc;
+  --light-blue: #eaf5ff;
+  --dark-blue: #004a99;
+  --white: #ffffff;
+  --text-color: #333333;
+}

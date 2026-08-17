@@ -1,0 +1,268 @@
+/* =================================
+   MAIN DASHBOARD LAYOUT
+================================= */
+
+.dashboard-layout {
+  min-height: 100vh;
+
+  background-color: #f4f9fc;
+}
+
+
+/* =================================
+   MAIN CONTENT
+================================= */
+
+.dashboard-main {
+  margin-left: 235px;
+
+  min-height: 100vh;
+}
+
+
+/* =================================
+   DASHBOARD PAGE
+================================= */
+
+.dashboard-page {
+  min-height: 100vh;
+
+  background-color: #f4f9fc;
+
+  padding: 40px 6% 60px;
+
+  font-family: Arial, sans-serif;
+
+  box-sizing: border-box;
+}
+
+
+/* =================================
+   DASHBOARD HEADER
+================================= */
+
+.dashboard-header {
+  text-align: center;
+
+  margin-bottom: 45px;
+}
+
+
+.dashboard-header h1 {
+  margin: 0;
+
+  color: #073b63;
+
+  font-size: 34px;
+
+  font-weight: bold;
+}
+
+
+.dashboard-header p {
+  margin-top: 10px;
+
+  color: #6b8191;
+
+  font-size: 15px;
+}
+
+
+/* =================================
+   DASHBOARD CARDS
+================================= */
+
+.dashboard-cards {
+  max-width: 1200px;
+
+  margin: auto;
+
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  column-gap: 28px;
+
+  row-gap: 35px;
+}
+
+
+/* =================================
+   SINGLE CARD
+================================= */
+
+.dashboard-card {
+  background-color: white;
+
+  border: 1px solid #d8eaf3;
+
+  border-radius: 12px;
+
+  min-height: 135px;
+
+  padding: 28px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 22px;
+
+  box-shadow:
+    0 4px 12px rgba(0, 80, 130, 0.10);
+
+  transition: 0.3s;
+
+  box-sizing: border-box;
+}
+
+
+/* =================================
+   CARD HOVER
+================================= */
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+
+  box-shadow:
+    0 8px 20px rgba(0, 80, 130, 0.15);
+}
+
+
+/* =================================
+   CARD ICON
+================================= */
+
+.card-icon {
+  width: 65px;
+
+  height: 65px;
+
+  border-radius: 50%;
+
+  background-color: #e3f4fc;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  color: #0876d1;
+
+  font-size: 28px;
+
+  flex-shrink: 0;
+}
+
+
+/* =================================
+   CARD CONTENT
+================================= */
+
+.card-content h3 {
+  margin: 0;
+
+  color: #527083;
+
+  font-size: 16px;
+
+  font-weight: normal;
+}
+
+
+.card-content h2 {
+  margin: 8px 0 0;
+
+  color: #0876d1;
+
+  font-size: 30px;
+
+  font-weight: bold;
+}
+
+
+/* =================================
+   LOW STOCK
+================================= */
+
+.low-stock-card .card-icon {
+  background-color: #fff4d6;
+
+  color: #e5a400;
+}
+
+
+/* =================================
+   EXPIRED
+================================= */
+
+.expired-card .card-icon {
+  background-color: #ffe3e3;
+
+  color: #e63962;
+}
+
+
+/* =================================
+   TABLET
+================================= */
+
+@media (max-width: 1000px) {
+
+  .dashboard-cards {
+    grid-template-columns: repeat(2, 1fr);
+
+    column-gap: 20px;
+
+    row-gap: 25px;
+  }
+
+}
+
+
+/* =================================
+   MOBILE
+================================= */
+
+@media (max-width: 700px) {
+
+  .dashboard-main {
+    margin-left: 70px;
+  }
+
+
+  .dashboard-page {
+    padding: 30px 20px 40px;
+  }
+
+
+  .dashboard-header {
+    margin-bottom: 30px;
+  }
+
+
+  .dashboard-header h1 {
+    font-size: 26px;
+  }
+
+
+  .dashboard-header p {
+    font-size: 14px;
+  }
+
+
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+
+    row-gap: 20px;
+  }
+
+
+  .dashboard-card {
+    min-height: 120px;
+
+    padding: 22px;
+  }
+
+}
