@@ -4,6 +4,7 @@ const express = require("express");
 const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
+const nodemailer = require("nodemailer");
 
 const app = express();
 
@@ -16,104 +17,158 @@ app.use(express.json());
 // =====================================================
 
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "medistock"
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "medistock"
 });
 
 db.connect((err) => {
+  if (err) {
+    console.log("Database Connection Failed:", err);
+  } else {
+    console.log("Database Connected Successfully");
+  }
+});
 
-    if (err) {
-        console.log("Database Connection Failed:", err);
-    } else {
-        console.log("Database Connected Successfully");
-    }
 
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,         
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD  
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
 
 // =====================================================
-// USER APIs
+// REGISTER API
 // =====================================================
-
-
-// ================= REGISTER =================
 
 app.post("/register", async (req, res) => {
 
-    const { name, email, password } = req.body;
+  const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+  // EMPTY FIELD
 
-        return res.json({
-            message: "All fields are required"
-        });
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      message: "All fields are required"
+    });
+  }
 
+  // GMAIL VALIDATION
+  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+
+  if (!gmailRegex.test(email.trim())) {
+    return res.status(400).json({
+      message: "Please enter a valid Gmail address"
+    });
+  }
+
+  const userEmail = email.trim();
+
+  //CHECK USER
+
+  const checkUser = "SELECT user_id FROM users WHERE email = ?";
+
+  db.query(checkUser, [userEmail], async (err, result) => {
+
+    if (err) {
+      console.log("Database Error:", err);
+      return res.status(500).json({ message: "Database error" });
     }
 
-    const checkUser =
-        "SELECT * FROM users WHERE email=?";
+    //USER EXISTS
 
-    db.query(checkUser, [email], async (err, result) => {
+    if (result.length > 0) {
+      console.log("User already exists:", userEmail);
+      return res.status(409).json({ message: "User already exists" });
+    }
 
-        if (err) {
+    try {
 
-            return res.status(500).json({
-                error: err
+      //HASH PASSWORD
+
+      const hashPassword = await bcrypt.hash(password, 10);
+
+      //DATE
+
+      const date = new Date();
+
+      // INSERT USER
+
+      const sql = `
+        INSERT INTO users (name, email, password, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+
+      db.query(
+        sql,
+        [name.trim(), userEmail, hashPassword, date, date],
+        async (err, result) => {
+
+          if (err) {
+            console.log("Registration Database Error:", err);
+            return res.status(500).json({ message: "Registration failed" });
+          }
+
+          console.log("User registered successfully:", userEmail);
+
+          //SEND EMAIL
+
+          const mailOptions = {
+            from: `"MediStock" <${process.env.EMAIL_USER}>`,
+            to: userEmail,
+            subject: "✅ MediStock Registration Successful",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px;">
+                <h2 style="color: #2e86de; text-align: center;">Welcome to MediStock 🏥</h2>
+                <p style="font-size: 16px;">Hello <strong>${name.trim()}</strong>,</p>
+                <p style="font-size: 15px; color: #333;">
+                  Your registration for <strong>MediStock Inventory System</strong> has been completed successfully. 🎉
+                </p>
+                <hr style="border: none; border-top: 1px solid #eee;" />
+                <p style="font-size: 13px; color: #888; text-align: center;">
+                  Thank you for registering with MediStock.<br/>
+                  <strong>MediStock Team</strong>
+                </p>
+              </div>
+            `
+          };
+
+          try {
+
+            await transporter.sendMail(mailOptions);
+            console.log("Registration email sent to:", userEmail);
+
+
+            return res.status(201).json({
+              message: "Registration successful! A confirmation email has been sent to your inbox."
             });
 
-        }
+          } catch (emailError) {
 
-        if (result.length > 0) {
+            console.log("Email sending error:", emailError.message);
 
-            return res.json({
-                message: "Email already exists"
+            return res.status(201).json({
+              message: "Registration successful! (Confirmation email could not be sent)"
             });
-
+          }
         }
+      );
 
-        const hashPassword =
-            await bcrypt.hash(password, 10);
-
-        const sql = `
-            INSERT INTO users
-            (name, email, password, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?)
-        `;
-
-        const date = new Date();
-
-        db.query(
-            sql,
-            [
-                name,
-                email,
-                hashPassword,
-                date,
-                date
-            ],
-            (err, result) => {
-
-                if (err) {
-
-                    return res.status(500).json({
-                        error: err
-                    });
-
-                }
-
-                res.json({
-                    message: "Registration Successful"
-                });
-
-            }
-        );
-
-    });
-
+    } catch (error) {
+      console.log("Registration Error:", error);
+      return res.status(500).json({ message: "Registration failed" });
+    }
+  });
 });
-
 
 // ================= LOGIN =================
 
@@ -179,7 +234,7 @@ app.post("/login", (req, res) => {
 // =====================================================
 
 
-// ================= TOTAL CUSTOMERS =================
+// TOTAL CUSTOMERS
 
 app.get("/dashboard/total-customers/:user_id",
     (req, res) => {
@@ -215,7 +270,7 @@ app.get("/dashboard/total-customers/:user_id",
 );
 
 
-// ================= TOTAL MEDICINES =================
+//TOTAL MEDICINES
 
 app.get("/dashboard/total-medicines/:user_id",
     (req, res) => {
@@ -250,7 +305,7 @@ app.get("/dashboard/total-medicines/:user_id",
 );
 
 
-// ================= TOTAL INVOICES =================
+// TOTAL INVOICES
 
 app.get("/dashboard/total-invoices/:user_id",
     (req, res) => {
@@ -286,7 +341,7 @@ app.get("/dashboard/total-invoices/:user_id",
 );
 
 
-// ================= TOTAL SALES =================
+//TOTAL SALES
 
 app.get("/dashboard/total-sales/:user_id",
     (req, res) => {
@@ -323,7 +378,7 @@ app.get("/dashboard/total-sales/:user_id",
 );
 
 
-// ================= LOW STOCK COUNT =================
+//LOW STOCK COUNT
 
 app.get("/dashboard/low-stock/:user_id",
     (req, res) => {
@@ -359,7 +414,7 @@ app.get("/dashboard/low-stock/:user_id",
 );
 
 
-// ================= EXPIRED MEDICINES =================
+//EXPIRED MEDICINES
 
 app.get("/dashboard/expired-medicines/:user_id",
     (req, res) => {
@@ -401,7 +456,7 @@ app.get("/dashboard/expired-medicines/:user_id",
 // =====================================================
 
 
-// ================= ADD MEDICINE =================
+// ADD MEDICINE
 
 app.post("/medicines", (req, res) => {
 
@@ -512,7 +567,7 @@ app.post("/medicines", (req, res) => {
 });
 
 
-// ================= GET ALL MEDICINES =================
+// GET ALL MEDICINES
 
 app.get("/medicines/:user_id", (req, res) => {
 
@@ -549,7 +604,7 @@ app.get("/medicines/:user_id", (req, res) => {
 });
 
 
-// ================= UPDATE MEDICINE =================
+//UPDATE MEDICINE
 
 app.put("/medicines/:user_id/:medicine_id",
     (req, res) => {
@@ -650,7 +705,7 @@ app.put("/medicines/:user_id/:medicine_id",
 );
 
 
-// ================= DELETE MEDICINE =================
+// DELETE MEDICINE
 
 app.delete("/medicines/:user_id/:medicine_id",
     (req, res) => {
@@ -700,7 +755,7 @@ app.delete("/medicines/:user_id/:medicine_id",
 );
 
 
-// ================= SEARCH MEDICINE =================
+//SEARCH MEDICINE
 
 app.get("/medicines/search/:user_id/:name",
     (req, res) => {
@@ -755,7 +810,7 @@ app.get("/medicines/search/:user_id/:name",
 );
 
 
-// ================= LOW STOCK MEDICINES =================
+//  LOW STOCK MEDICINES
 
 app.get("/medicines/low-stock/:user_id",
     (req, res) => {
@@ -800,7 +855,7 @@ app.get("/medicines/low-stock/:user_id",
 // =====================================================
 
 
-// ================= GET CUSTOMER DETAILS =================
+//GET CUSTOMER DETAILS 
 
 app.get("/customer/:user_id/:customer_id",
     (req, res) => {
@@ -878,10 +933,6 @@ app.post("/customers/generate-bill",
         } = req.body;
 
 
-        // -------------------------------
-        // VALIDATION
-        // -------------------------------
-
         if (
             !customer_id ||
             !customer_name ||
@@ -912,10 +963,6 @@ app.post("/customers/generate-bill",
 
             await connection.beginTransaction();
 
-
-            // =================================================
-            // CHECK CUSTOMER ID
-            // =================================================
 
             const [customerResult] =
                 await connection.query(
@@ -1018,9 +1065,9 @@ app.post("/customers/generate-bill",
                     medicine[0];
 
 
-                // =================================================
+                
                 // EXPIRY CHECK
-                // =================================================
+               
 
                 if (
                     med.expiry_date &&
@@ -1042,9 +1089,9 @@ app.post("/customers/generate-bill",
                 }
 
 
-                // =================================================
+                
                 // QUANTITY CHECK
-                // =================================================
+               
 
                 const requestedQuantity =
                     Number(item.quantity);
@@ -1090,9 +1137,9 @@ app.post("/customers/generate-bill",
                 }
 
 
-                // =================================================
+                
                 // CALCULATE TOTAL
-                // =================================================
+               
 
                 grandTotal +=
                     Number(med.price)
@@ -1100,10 +1147,8 @@ app.post("/customers/generate-bill",
 
             }
 
-
-            // =================================================
             // INSERT BILL + DECREASE STOCK
-            // =================================================
+            
 
             for (const item of items) {
 
@@ -1174,10 +1219,8 @@ app.post("/customers/generate-bill",
                     ]
                 );
 
-
-                // =================================================
                 // DECREASE MEDICINE STOCK
-                // =================================================
+               
 
                 const [updateResult] =
                     await connection.query(
@@ -1275,7 +1318,7 @@ app.post("/customers/generate-bill",
 // =====================================================
 
 
-// ================= GET INVOICE =================
+//GET INVOICE
 
 app.get("/invoice/:invoice_no",
     (req, res) => {
@@ -1377,7 +1420,7 @@ app.get("/invoice/:invoice_no",
 // =====================================================
 
 
-// ================= CUSTOMER HISTORY =================
+//CUSTOMER HISTORY 
 
 app.get("/customers/history/:user_id",
     (req, res) => {
@@ -1432,7 +1475,7 @@ app.get("/customers/history/:user_id",
 );
 
 
-// ================= SEARCH CUSTOMER HISTORY =================
+// SEARCH CUSTOMER HISTORY
 
 app.get(
     "/customers/history/search/:user_id/:keyword",
@@ -1511,7 +1554,7 @@ app.get(
 // =====================================================
 
 
-// ================= GET PROFILE =================
+//  GET PROFILE
 
 app.get("/profile/:user_id",
     (req, res) => {
@@ -1558,7 +1601,7 @@ app.get("/profile/:user_id",
 );
 
 
-// ================= UPDATE PROFILE =================
+// UPDATE PROFILE 
 
 app.put("/profile/:user_id",
     (req, res) => {
@@ -1618,11 +1661,6 @@ app.put("/profile/:user_id",
 );
 
 
-// ===============================
-// MEDISTOCK CHATBOT API
-// ===============================
-
-// ================= MEDISTOCK CHATBOT API =================
 
 // ==========================================
 // MEDISTOCK AI CHATBOT
@@ -1656,10 +1694,8 @@ app.post("/chatbot", async (req, res) => {
 
         }
 
-
-        // ==========================================
         // CURRENT DATE
-        // ==========================================
+        
 
         const [dateResult] = await db.promise().query(
             `SELECT CURDATE() AS today`
@@ -1667,10 +1703,8 @@ app.post("/chatbot", async (req, res) => {
 
         const today = dateResult[0].today;
 
-
-        // ==========================================
         // LOGGED-IN USER
-        // ==========================================
+       
 
         const [users] = await db.promise().query(
             `
@@ -1698,9 +1732,7 @@ app.post("/chatbot", async (req, res) => {
         const currentUser = users[0];
 
 
-        // ==========================================
         // MEDICINES
-        // ==========================================
 
         const [medicines] = await db.promise().query(
             `
@@ -1720,9 +1752,7 @@ app.post("/chatbot", async (req, res) => {
         );
 
 
-        // ==========================================
         // CUSTOMERS / BILL ITEMS
-        // ==========================================
 
         const [customers] = await db.promise().query(
             `
@@ -1754,11 +1784,6 @@ app.post("/chatbot", async (req, res) => {
             [user_id]
         );
 
-
-        // ==========================================
-        // LOW STOCK
-        // ==========================================
-
         // Low stock = quantity <= 10
 
         const lowStockMedicines = medicines.filter(
@@ -1766,10 +1791,8 @@ app.post("/chatbot", async (req, res) => {
                 Number(medicine.quantity) <= 10
         );
 
-
-        // ==========================================
         // EXPIRED MEDICINES
-        // ==========================================
+        
 
         const expiredMedicines = medicines.filter(
             medicine => {
@@ -1787,9 +1810,8 @@ app.post("/chatbot", async (req, res) => {
         );
 
 
-        // ==========================================
+        
         // UNIQUE CUSTOMERS
-        // ==========================================
 
         const uniqueCustomers =
             new Set(
@@ -1799,9 +1821,8 @@ app.post("/chatbot", async (req, res) => {
             );
 
 
-        // ==========================================
+      
         // UNIQUE INVOICES
-        // ==========================================
 
         const uniqueInvoices =
             new Set(
@@ -1811,9 +1832,9 @@ app.post("/chatbot", async (req, res) => {
             );
 
 
-        // ==========================================
+       
         // TOTAL SALES
-        // ==========================================
+       
 
         const totalSales =
             customers.reduce(
@@ -1831,9 +1852,9 @@ app.post("/chatbot", async (req, res) => {
             );
 
 
-        // ==========================================
+        
         // TOTAL MEDICINE STOCK
-        // ==========================================
+        
 
         const totalMedicineUnits =
             medicines.reduce(
@@ -1851,9 +1872,9 @@ app.post("/chatbot", async (req, res) => {
             );
 
 
-        // ==========================================
+        
         // MEDISTOCK DATA
-        // ==========================================
+       
 
         const medistockData = {
 
@@ -2126,9 +2147,9 @@ Keep the response concise.
 `;
 
 
-        // ==========================================
+        
         // OPENROUTER API
-        // ==========================================
+     
 
         const response = await fetch(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -2173,17 +2194,17 @@ Keep the response concise.
         );
 
 
-        // ==========================================
+       
         // OPENROUTER RESPONSE
-        // ==========================================
+        
 
         const data =
             await response.json();
 
 
-        // ==========================================
+     
         // API ERROR
-        // ==========================================
+       
 
         if (!response.ok) {
 
@@ -2204,9 +2225,9 @@ Keep the response concise.
         }
 
 
-        // ==========================================
+        
         // AI ANSWER
-        // ==========================================
+      
 
         const answer =
             data?.choices?.[0]?.message?.content;
@@ -2226,9 +2247,9 @@ Keep the response concise.
         }
 
 
-        // ==========================================
+        
         // SEND ANSWER
-        // ==========================================
+       
 
         return res.json({
 
@@ -2241,9 +2262,9 @@ Keep the response concise.
     }
 
 
-    // ==========================================
+   
     // SERVER ERROR
-    // ==========================================
+   
 
     catch (error) {
 
@@ -2264,9 +2285,9 @@ Keep the response concise.
     }
 
 });
-// =====================================================
+
 // SERVER
-// =====================================================
+
 
 app.listen(1000, () => {
 

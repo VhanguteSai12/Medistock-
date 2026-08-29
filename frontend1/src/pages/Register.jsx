@@ -2,321 +2,223 @@ import React, { useState } from "react";
 import axios from "axios";
 import "../css/Register.css";
 import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
 
 function Register() {
 
-  const [name,setName] = useState("");
-  const [email,setEmail] = useState("");
-  const [password,setPassword] = useState("");
-  const [confirmPassword,setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false); // ← ADD THIS
 
-  const [showPassword,setShowPassword] = useState(false);
-  const [showConfirmPassword,setShowConfirmPassword] = useState(false);
-
+  // ================= GMAIL VALIDATION =================
 
   const validateEmail = (email) => {
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     return gmailRegex.test(email);
   };
 
+  // ================= EMAIL CLICK =================
 
-
-  // Email click validation
   const handleEmailClick = () => {
-
-    if(name.trim()===""){
-
-      alert(" Please enter your full name first");
-
+    if (name.trim() === "") {
+      alert("Please enter your full name first");
     }
-
   };
 
+  // ================= PASSWORD CLICK =================
 
-
-  // Password click validation
   const handlePasswordClick = () => {
-
-    if(name.trim()===""){
-
+    if (name.trim() === "") {
       alert("Please enter your full name first");
       return;
-
     }
-
-
-    if(!validateEmail(email)){
-
+    if (!validateEmail(email.trim())) {
       alert("Please enter a valid Gmail address first");
-
     }
-
   };
 
+  // ================= REGISTER =================
 
-
-
-  const handleRegister = async(e)=>{
+  const handleRegister = async (e) => {
 
     e.preventDefault();
 
+    // ================= PREVENT DOUBLE SUBMIT =================
 
+    if (isSubmitting) return; // ← BLOCK if already submitting
 
-    if(name.trim()===""){
+    // ================= NAME =================
 
-      alert(" Please enter your full name");
+    if (name.trim() === "") {
+      alert("Please enter your full name");
       return;
-
     }
 
+    // ================= EMAIL =================
 
-
-    if(!validateEmail(email)){
-
-      alert(" Email must be in format example@gmail.com");
+    if (!validateEmail(email.trim())) {
+      alert("Email must be in format example@gmail.com");
       return;
-
     }
 
+    // ================= PASSWORD =================
 
-
-    if(password.length < 8){
-
-      alert(" Password must contain minimum 8 characters");
+    if (password.length < 8) {
+      alert("Password must contain minimum 8 characters");
       return;
-
     }
 
+    // ================= CONFIRM PASSWORD =================
 
-
-    if(password !== confirmPassword){
-
-      alert(" Password and Confirm Password do not match");
+    if (password !== confirmPassword) {
+      alert("Password and Confirm Password do not match");
       return;
-
     }
 
+    // ================= API REQUEST =================
 
+    setIsSubmitting(true); // ← LOCK button before API call
 
-
-    try{
-
+    try {
 
       const response = await axios.post(
-
         "http://localhost:1000/register",
-
         {
-
-          name,
-          email,
-          password
-
+          name: name.trim(),
+          email: email.trim(),
+          password: password
         }
-
       );
 
+      // ================= SUCCESS (NEW USER) =================
 
-      alert( (response.data.message || "Registration Successful"));
-
-
-      setName("");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
-
-
-    }
-
-
-
-    catch(error){
-
-
-      if(error.response){
-
-        alert(+ error.response.data.message);
-
+      if (response.status === 201) {
+        alert(response.data.message);
+        setName("");
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
       }
 
-      else{
+    } catch (error) {
 
+      // ================= USER ALREADY EXISTS (OLD USER) =================
+
+      if (error.response && error.response.status === 409) {
+        alert("User already exists");
+      }
+
+      // ================= BACKEND ERROR =================
+
+      else if (error.response) {
+        alert(error.response.data.message || "Registration failed");
+      }
+
+      // ================= SERVER ERROR =================
+
+      else {
         alert("Server is not connected");
-
       }
 
+    } finally {
+
+      setIsSubmitting(false); // ← UNLOCK button after API call
 
     }
-
   };
 
-
-
-
-return (
-
-<div className="register-page">
-
-<Navbar />
-
-<div className="register-overlay">
-
-
-<div className="register-box">
-
-
-<h1>MediStock</h1>
-
-<p className="register-title">
-Stock Manager Registration
-</p>
-
-
-
-<form onSubmit={handleRegister}>
-
-
-<div className="input-group">
-
-<label>Full Name</label>
-
-<input
-
-type="text"
-
-placeholder="Enter your name"
-
-value={name}
-
-onChange={(e)=>setName(e.target.value)}
-
-/>
-
-</div>
-
-
-
-
-<div className="input-group">
-
-<label>Email</label>
-
-<input
-
-type="email"
-
-placeholder="example@gmail.com"
-
-value={email}
-
-autoComplete="new-email"
-
-onClick={handleEmailClick}
-
-onChange={(e)=>setEmail(e.target.value)}
-
-/>
-
-</div>
-
-
-
-
-
-<div className="input-group">
-
-<label>Password</label>
-
-
-<div className="password-box">
-
-
-<input
-
-type={showPassword ? "text":"password"}
-
-placeholder="Create password"
-
-value={password}
-
-autoComplete="new-password"
-
-onClick={handlePasswordClick}
-
-onChange={(e)=>setPassword(e.target.value)}
-
-/>
-
-
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-<div className="input-group">
-
-<label>Confirm Password</label>
-
-
-<div className="password-box">
-
-
-<input
-
-type={showConfirmPassword ? "text":"password"}
-
-placeholder="Confirm password"
-
-value={confirmPassword}
-
-onChange={(e)=>setConfirmPassword(e.target.value)}
-
-/>
-
-
-</div>
-
-
-</div>
-
-
-
-
-<button type="submit">
-
-Register
-
-</button>
-
-
-
-</form>
-
-
-
-<div className="login-link">
-  <p>
-    Already have account?
-    <Link to="/login">Login</Link>
-  </p>
-</div>
-
-
-</div>
-
-</div>
-
-</div>
-
-);
-
+  return (
+
+    <div className="register-page">
+
+      <Navbar />
+
+      <div className="register-overlay">
+
+        <div className="register-box">
+
+          <h1>MediStock</h1>
+
+          <p className="register-title">
+            Stock Manager Registration
+          </p>
+
+          <form onSubmit={handleRegister}>
+
+            {/* ================= FULL NAME ================= */}
+
+            <div className="input-group">
+              <label>Full Name</label>
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
+            {/* ================= EMAIL ================= */}
+
+            <div className="input-group">
+              <label>Email</label>
+              <input
+                type="email"
+                placeholder="example@gmail.com"
+                value={email}
+                autoComplete="new-email"
+                onClick={handleEmailClick}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            {/* ================= PASSWORD ================= */}
+
+            <div className="input-group">
+              <label>Password</label>
+              <div className="password-box">
+                <input
+                  type="password"
+                  placeholder="Create password"
+                  value={password}
+                  autoComplete="new-password"
+                  onClick={handlePasswordClick}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* ================= CONFIRM PASSWORD ================= */}
+
+            <div className="input-group">
+              <label>Confirm Password</label>
+              <div className="password-box">
+                <input
+                  type="password"
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* ================= REGISTER BUTTON ================= */}
+
+            <button
+              type="submit"
+              disabled={isSubmitting} // ← DISABLE during API call
+            >
+              {isSubmitting ? "Registering..." : "Register"} {/* ← Show loading text */}
+            </button>
+
+          </form>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
 }
 
 export default Register;
