@@ -15,7 +15,7 @@ import {
 } from "react-icons/fa";
 
 import Navbar from "../components/Navbar";
-import "../css/Home.css";
+import "../css/HomePage.css";
 
 function Home() {
   return (
