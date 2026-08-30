@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import "../css/Medicines.css";
-import Sidebar from "../components/Sidebar";
 
+import "./../css/Medicines.css";
+import Sidebar from "../components/Sidebar";
 
 function Medicines() {
 
-    // Logged In User
+    // ================= API URL =================
+    const API_URL = import.meta.env.VITE_API_URL;
+
+    // ================= LOGGED IN USER =================
     const user_id = localStorage.getItem("user_id");
+
     console.log("Medicines page user_id:", user_id);
 
-    // Form States
+    // ================= FORM STATES =================
     const [medicine_name, setMedicineName] = useState("");
     const [company_name, setCompanyName] = useState("");
     const [batch_no, setBatchNo] = useState("");
@@ -18,288 +22,281 @@ function Medicines() {
     const [quantity, setQuantity] = useState("");
     const [price, setPrice] = useState("");
 
-    // Medicines List
+    // ================= MEDICINES LIST =================
     const [medicines, setMedicines] = useState([]);
 
-    // Low Stock Medicines
+    // ================= LOW STOCK MEDICINES =================
     const [lowStock, setLowStock] = useState([]);
 
-    //Update Medicines
+    // ================= UPDATE MEDICINE =================
     const [editingId, setEditingId] = useState(null);
 
-    //Delete Medicines
-   
 
-    // Load Data
+    // ================= LOAD DATA =================
     useEffect(() => {
 
         getMedicines();
         getLowStock();
 
-
     }, []);
 
 
-    // Get Medicines
-
+    // ================= GET MEDICINES =================
     const getMedicines = async () => {
 
         try {
 
             const response = await axios.get(
-                `http://localhost:1000/medicines/${user_id}`
+                `${API_URL}/medicines/${user_id}`
             );
 
             setMedicines(response.data);
 
-        }
+        } catch (error) {
 
-        catch (error) {
-
-            console.log(error);
+            console.log("Get Medicines Error:", error);
 
         }
 
     };
 
-    // Get Low Stock Medicines
 
+    // ================= GET LOW STOCK =================
     const getLowStock = async () => {
 
         try {
 
             const response = await axios.get(
-                `http://localhost:1000/medicines/low-stock/${user_id}`
+                `${API_URL}/medicines/low-stock/${user_id}`
             );
 
             setLowStock(response.data);
 
-        }
+        } catch (error) {
 
-        catch (error) {
-
-            console.log(error);
+            console.log("Low Stock Error:", error);
 
         }
 
     };
-    // Add Medicine
 
-const handleAddMedicine = async (e) => {
 
-    e.preventDefault();
+    // ================= ADD MEDICINE =================
+    const handleAddMedicine = async (e) => {
 
-    try {
+        e.preventDefault();
 
-        // Step 1: Check whether medicine already exists
-        const checkResponse = await axios.get(
-            `http://localhost:1000/medicines/search/${user_id}/${medicine_name}`
-        );
+        try {
 
-        if (checkResponse.data.found) {
+            // Step 1: Check whether medicine already exists
+            const checkResponse = await axios.get(
+                `${API_URL}/medicines/search/${user_id}/${medicine_name}`
+            );
 
-            alert("Medicine already exists in stock.");
+            if (checkResponse.data.found) {
 
-            // Fill the form with existing data
-            const medicine = checkResponse.data.medicine;
+                alert("Medicine already exists in stock.");
 
-            setMedicineName(medicine.medicine_name);
-            setCompanyName(medicine.company_name);
-            setBatchNo(medicine.batch_no);
-            setExpiryDate(medicine.expiry_date.substring(0, 10));
-            setQuantity(medicine.quantity);
-            setPrice(medicine.price);
+                // Fill form with existing data
+                const medicine = checkResponse.data.medicine;
 
-            return;
-        }
+                setMedicineName(medicine.medicine_name);
+                setCompanyName(medicine.company_name);
+                setBatchNo(medicine.batch_no);
 
-        // Step 2: Add new medicine
-        const response = await axios.post(
-            "http://localhost:1000/medicines",
-            {
-                
-                user_id,
-                medicine_name,
-                company_name,
-                batch_no,
-                expiry_date,
-                quantity,
-                price
+                setExpiryDate(
+                    medicine.expiry_date.substring(0, 10)
+                );
+
+                setQuantity(medicine.quantity);
+                setPrice(medicine.price);
+
+                return;
             }
-        );
 
-        alert(response.data.message);
 
-        setMedicineName("");
-        setCompanyName("");
-        setBatchNo("");
-        setExpiryDate("");
-        setQuantity("");
-        setPrice("");
+            // Step 2: Add new medicine
+            const response = await axios.post(
+                `${API_URL}/medicines`,
+                {
+                    user_id,
+                    medicine_name,
+                    company_name,
+                    batch_no,
+                    expiry_date,
+                    quantity,
+                    price
+                }
+            );
 
-        getMedicines();
-        getLowStock();
+            alert(response.data.message);
 
-    }
+            // Clear form
+            setMedicineName("");
+            setCompanyName("");
+            setBatchNo("");
+            setExpiryDate("");
+            setQuantity("");
+            setPrice("");
 
-    catch (error) {
+            // Refresh data
+            getMedicines();
+            getLowStock();
 
-        if (error.response) {
+        } catch (error) {
 
-            alert(error.response.data.message);
+            if (error.response) {
+
+                alert(
+                    error.response.data.message ||
+                    "Failed to add medicine"
+                );
+
+            } else {
+
+                alert("Server is not connected");
+
+            }
 
         }
 
-        else {
+    };
 
-            alert("Server is not connected");
 
-        }
-
-    }
-
-};
-    // Search Medicine
-
-    // const handleSearch = async () => {
-
-    //     if (search.trim() === "") {
-
-    //         getMedicines();
-    //         return;
-
-    //     }
-
-    //     try {
-
-    //         const response = await axios.get(
-    //             `http://localhost:1000/medicines/search/${user_id}/${search}`
-    //         );
-
-    //         setMedicines(response.data);
-
-    //     }
-
-    //     catch (error) {
-
-    //         console.log(error);
-
-    //     }
-
-    // };
-
+    // ================= EDIT MEDICINE =================
     const editMedicine = (medicine) => {
 
-    setEditingId(medicine.medicine_id);
+        setEditingId(medicine.medicine_id);
 
-    setMedicineName(medicine.medicine_name);
-    setCompanyName(medicine.company_name);
-    setBatchNo(medicine.batch_no);
-    setExpiryDate(medicine.expiry_date.substring(0,10));
-    setQuantity(medicine.quantity);
-    setPrice(medicine.price);
+        setMedicineName(medicine.medicine_name);
+        setCompanyName(medicine.company_name);
+        setBatchNo(medicine.batch_no);
 
-};
+        setExpiryDate(
+            medicine.expiry_date.substring(0, 10)
+        );
 
-const handleUpdate = async () => {
+        setQuantity(medicine.quantity);
+        setPrice(medicine.price);
 
-    try {
+    };
 
-        const response = await axios.put(
-            `http://localhost:1000/medicines/${user_id}/${editingId}`,
-            {
-                medicine_name,
-                company_name,
-                batch_no,
-                expiry_date,
-                quantity,
-                price
+
+    // ================= UPDATE MEDICINE =================
+    const handleUpdate = async () => {
+
+        try {
+
+            const response = await axios.put(
+                `${API_URL}/medicines/${user_id}/${editingId}`,
+                {
+                    medicine_name,
+                    company_name,
+                    batch_no,
+                    expiry_date,
+                    quantity,
+                    price
+                }
+            );
+
+            alert(response.data.message);
+
+            setEditingId(null);
+
+            // Clear form
+            setMedicineName("");
+            setCompanyName("");
+            setBatchNo("");
+            setExpiryDate("");
+            setQuantity("");
+            setPrice("");
+
+            // Refresh data
+            getMedicines();
+            getLowStock();
+
+        } catch (error) {
+
+            if (error.response) {
+
+                alert(
+                    error.response.data.message ||
+                    "Failed to update medicine"
+                );
+
+            } else {
+
+                alert("Server not connected");
+
             }
+
+        }
+
+    };
+
+
+    // ================= DELETE MEDICINE =================
+    const handleDelete = async (medicine_id) => {
+
+        const confirmDelete = window.confirm(
+            "Are you sure you want to delete this medicine?"
         );
 
-        alert(response.data.message);
+        if (!confirmDelete) return;
 
-        setEditingId(null);
+        try {
 
-        setMedicineName("");
-        setCompanyName("");
-        setBatchNo("");
-        setExpiryDate("");
-        setQuantity("");
-        setPrice("");
+            const response = await axios.delete(
+                `${API_URL}/medicines/${user_id}/${medicine_id}`
+            );
 
-        getMedicines();
-        getLowStock();
+            alert(response.data.message);
 
-    }
-    catch(error){
+            // Refresh medicines
+            getMedicines();
 
-        if(error.response){
-            alert(error.response.data.message);
-        }
-        else{
-            alert("Server not connected");
-        }
+            // Refresh low stock
+            getLowStock();
 
-    }
+        } catch (error) {
 
-};
+            if (error.response) {
 
-const handleDelete = async (medicine_id) => {
+                alert(
+                    error.response.data.message ||
+                    "Failed to delete medicine"
+                );
 
-    const confirmDelete = window.confirm(
-        "Are you sure you want to delete this medicine?"
-    );
+            } else {
 
-    if (!confirmDelete) return;
+                alert("Server is not connected");
 
-    try {
+            }
 
-        const response = await axios.delete(
-            `http://localhost:1000/medicines/${user_id}/${medicine_id}`
-        );
-
-        alert(response.data.message);
-
-        // Refresh medicines list
-        getMedicines();
-
-        // Refresh low stock list
-        getLowStock();
-
-    } catch (error) {
-
-        if (error.response) {
-            alert(error.response.data.message);
-        } else {
-            alert("Server is not connected");
         }
 
-    }
+    };
 
-};
 
+    // ================= UI =================
     return (
-          <>       
+        <>
 
             <div className="medicine-container">
 
-                      <Sidebar />
-
-
-                {/* Heading */}
-
+                {/* ================= HEADING ================= */}
                 <div className="heading">
 
                     <h1>Medicines Management</h1>
 
-                    <p>Manage your pharmacy medicines efficiently.</p>
+                    <p>
+                        Manage your pharmacy medicines efficiently.
+                    </p>
 
                 </div>
 
-                
-                {/* Add Medicine Form */}
 
+                {/* ================= ADD MEDICINE FORM ================= */}
                 <form
                     className="medicine-form"
                     onSubmit={handleAddMedicine}
@@ -309,7 +306,9 @@ const handleDelete = async (medicine_id) => {
                         type="text"
                         placeholder="Medicine Name"
                         value={medicine_name}
-                        onChange={(e) => setMedicineName(e.target.value)}
+                        onChange={(e) =>
+                            setMedicineName(e.target.value)
+                        }
                         required
                     />
 
@@ -317,7 +316,9 @@ const handleDelete = async (medicine_id) => {
                         type="text"
                         placeholder="Company Name"
                         value={company_name}
-                        onChange={(e) => setCompanyName(e.target.value)}
+                        onChange={(e) =>
+                            setCompanyName(e.target.value)
+                        }
                         required
                     />
 
@@ -325,14 +326,18 @@ const handleDelete = async (medicine_id) => {
                         type="text"
                         placeholder="Batch No"
                         value={batch_no}
-                        onChange={(e) => setBatchNo(e.target.value)}
+                        onChange={(e) =>
+                            setBatchNo(e.target.value)
+                        }
                         required
                     />
 
                     <input
                         type="date"
                         value={expiry_date}
-                        onChange={(e) => setExpiryDate(e.target.value)}
+                        onChange={(e) =>
+                            setExpiryDate(e.target.value)
+                        }
                         required
                     />
 
@@ -340,7 +345,9 @@ const handleDelete = async (medicine_id) => {
                         type="number"
                         placeholder="Quantity"
                         value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
+                        onChange={(e) =>
+                            setQuantity(e.target.value)
+                        }
                         required
                     />
 
@@ -348,7 +355,9 @@ const handleDelete = async (medicine_id) => {
                         type="number"
                         placeholder="Price"
                         value={price}
-                        onChange={(e) => setPrice(e.target.value)}
+                        onChange={(e) =>
+                            setPrice(e.target.value)
+                        }
                         required
                     />
 
@@ -356,23 +365,23 @@ const handleDelete = async (medicine_id) => {
                         Add Medicine
                     </button>
 
-                    {
-            editingId &&
 
-              <button
-              type="button"
-                onClick={handleUpdate}
-               >
-            Update Medicine
-            </button>
+                    {/* ================= UPDATE BUTTON ================= */}
+                    {editingId && (
 
-           }
+                        <button
+                            type="button"
+                            onClick={handleUpdate}
+                        >
+                            Update Medicine
+                        </button>
+
+                    )}
 
                 </form>
 
 
-                {/* Medicines Table */}
-
+                {/* ================= MEDICINES TABLE ================= */}
                 <div className="medicine-table">
 
                     <table>
@@ -393,64 +402,80 @@ const handleDelete = async (medicine_id) => {
 
                         </thead>
 
+
                         <tbody>
 
-                            {
+                            {medicines.length > 0 ?
 
-                                medicines.length > 0 ?
+                                medicines.map((medicine) => (
 
-                                    medicines.map((medicine) => (
+                                    <tr
+                                        key={medicine.medicine_id}
+                                    >
 
-                                        <tr key={medicine.medicine_id}>
+                                        <td>
+                                            {medicine.medicine_name}
+                                        </td>
 
-                                            <td>{medicine.medicine_name}</td>
+                                        <td>
+                                            {medicine.company_name}
+                                        </td>
 
-                                            <td>{medicine.company_name}</td>
+                                        <td>
+                                            {medicine.batch_no}
+                                        </td>
 
-                                            <td>{medicine.batch_no}</td>
+                                        <td>
+                                            {medicine.expiry_date?.substring(0, 10)}
+                                        </td>
 
-                                            <td>{medicine.expiry_date?.substring(0,10)}</td>
+                                        <td>
+                                            {medicine.quantity}
+                                        </td>
 
-                                            <td>{medicine.quantity}</td>
+                                        <td>
+                                            ₹ {medicine.price}
+                                        </td>
 
-                                            <td>₹ {medicine.price}</td>
+                                        <td>
 
-                                            <td>
+                                            <button
+                                                type="button"
+                                                className="edit-btn"
+                                                onClick={() =>
+                                                    editMedicine(medicine)
+                                                }
+                                            >
+                                                Edit
+                                            </button>
 
-                                                <button
-                                                    type="button"
-                                                    className="edit-btn"
-                                                    onClick={() => editMedicine(medicine)}
-                                                >
-                                                    Edit
-                                                </button>
-
-                                                    <button
-                                            type="button"
-                                             className="delete-btn"
-                                             onClick={() => handleDelete(medicine.medicine_id)}
-                                                >
-                                            Delete
-                                               </button>
-
-
-                                            </td>
-
-                                        </tr>
-
-                                    ))
-
-                                    :
-
-                                    <tr>
-
-                                        <td colSpan="6">
-
-                                            No Medicines Found
+                                            <button
+                                                type="button"
+                                                className="delete-btn"
+                                                onClick={() =>
+                                                    handleDelete(
+                                                        medicine.medicine_id
+                                                    )
+                                                }
+                                            >
+                                                Delete
+                                            </button>
 
                                         </td>
 
                                     </tr>
+
+                                ))
+
+                                :
+
+                                <tr>
+
+                                    <td colSpan="7">
+                                        No Medicines Found
+                                    </td>
+
+                                </tr>
 
                             }
 
@@ -461,11 +486,12 @@ const handleDelete = async (medicine_id) => {
                 </div>
 
 
-                {/* Low Stock Medicines */}
-
+                {/* ================= LOW STOCK ================= */}
                 <div className="low-stock">
 
-                    <h2>Low Stock Medicines</h2>
+                    <h2>
+                        Low Stock Medicines
+                    </h2>
 
                     <table>
 
@@ -482,33 +508,35 @@ const handleDelete = async (medicine_id) => {
 
                         <tbody>
 
-                            {
+                            {lowStock.length > 0 ?
 
-                                lowStock.length > 0 ?
+                                lowStock.map((medicine) => (
 
-                                    lowStock.map((medicine) => (
+                                    <tr
+                                        key={medicine.medicine_id}
+                                    >
 
-                                        <tr key={medicine.medicine_id}>
+                                        <td>
+                                            {medicine.medicine_name}
+                                        </td>
 
-                                            <td>{medicine.medicine_name}</td>
-
-                                            <td>{medicine.quantity}</td>
-
-                                        </tr>
-
-                                    ))
-
-                                    :
-
-                                    <tr>
-
-                                        <td colSpan="2">
-
-                                            No Low Stock Medicines
-
+                                        <td>
+                                            {medicine.quantity}
                                         </td>
 
                                     </tr>
+
+                                ))
+
+                                :
+
+                                <tr>
+
+                                    <td colSpan="2">
+                                        No Low Stock Medicines
+                                    </td>
+
+                                </tr>
 
                             }
 
@@ -520,17 +548,18 @@ const handleDelete = async (medicine_id) => {
 
             </div>
 
+
+            {/* ================= FOOTER ================= */}
             <footer>
-               <p> © 2026 MediStock Inventory System
-               </p>
-               
+
+                <p>
+                    © 2026 MediStock Inventory System
+                </p>
 
             </footer>
 
         </>
-
     );
-
 }
 
 export default Medicines;

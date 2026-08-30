@@ -3,9 +3,12 @@ import axios from "axios";
 import "../css/History.css";
 import Sidebar from "../components/Sidebar";
 
-
-
 function History() {
+
+    // ==========================
+    // API URL
+    // ==========================
+    const API_URL = import.meta.env.VITE_API_URL;
 
     const user_id = localStorage.getItem("user_id");
 
@@ -27,12 +30,49 @@ function History() {
 
     useEffect(() => {
 
-        if (!user_id)
+        if (!user_id) {
+            console.log("User ID not found");
+            setLoading(false);
             return;
+        }
 
         loadHistory();
 
     }, []);
+
+    // ==========================
+    // Calculate Cards
+    // ==========================
+
+    const calculateCards = (data) => {
+
+        // Total Bills
+        setTotalBills(data.length);
+
+        // Today's date
+        const today = new Date()
+            .toISOString()
+            .split("T")[0];
+
+        // Today's Bills
+        const todayCount = data.filter((bill) => {
+
+            return bill.visit_date?.substring(0, 10) === today;
+
+        }).length;
+
+        setTodayBills(todayCount);
+
+        // Total Revenue
+        const revenue = data.reduce((total, bill) => {
+
+            return total + Number(bill.grand_total || 0);
+
+        }, 0);
+
+        setTotalRevenue(revenue);
+
+    };
 
     // ==========================
     // Get History
@@ -45,9 +85,7 @@ function History() {
         try {
 
             const res = await axios.get(
-
-                `http://localhost:1000/customers/history/${user_id}`
-
+                `${API_URL}/customers/history/${user_id}`
             );
 
             setHistory(res.data);
@@ -58,7 +96,7 @@ function History() {
 
         catch (err) {
 
-            console.log(err);
+            console.log("History Error:", err);
 
             alert("Unable To Load History");
 
@@ -85,13 +123,14 @@ function History() {
             if (keyword.trim() === "") {
 
                 loadHistory();
+
                 return;
 
             }
 
             const res = await axios.get(
 
-                `http://localhost:1000/customers/history/search/${user_id}/${keyword}`
+                `${API_URL}/customers/history/search/${user_id}/${encodeURIComponent(keyword)}`
 
             );
 
@@ -103,16 +142,17 @@ function History() {
 
         catch (err) {
 
-            console.log(err);
+            console.log("Search History Error:", err);
 
         }
 
     };
 
-      return (
+    return (
 
         <>
-         <Sidebar/>
+
+            <Sidebar />
 
             <div className="history-container">
 
@@ -136,7 +176,9 @@ function History() {
 
                         value={search}
 
-                        onChange={(e) => searchHistory(e.target.value)}
+                        onChange={(e) =>
+                            searchHistory(e.target.value)
+                        }
 
                     />
 
@@ -213,23 +255,42 @@ function History() {
                                 )
 
                                 :
-                                    history.map((bill) => (
 
-                                    <tr key={bill.invoice_no}>
+                                history.map((bill) => (
 
-                                        <td>{bill.invoice_no}</td>
+                                    <tr
+                                        key={bill.invoice_no}
+                                    >
 
-                                        <td>{bill.customer_id}</td>
+                                        <td>
+                                            {bill.invoice_no}
+                                        </td>
 
-                                        <td>{bill.customer_name}</td>
+                                        <td>
+                                            {bill.customer_id}
+                                        </td>
 
-                                        <td>{bill.mobile}</td>
+                                        <td>
+                                            {bill.customer_name}
+                                        </td>
 
-                                        <td>{bill.doctor_name}</td>
+                                        <td>
+                                            {bill.mobile}
+                                        </td>
 
-                                        <td>{bill.visit_date}</td>
+                                        <td>
+                                            {bill.doctor_name}
+                                        </td>
 
-                                        <td>₹ {bill.grand_total}</td>
+                                        <td>
+                                            {bill.visit_date}
+                                        </td>
+
+                                        <td>
+                                            ₹ {Number(
+                                                bill.grand_total || 0
+                                            ).toFixed(2)}
+                                        </td>
 
                                         <td>
 

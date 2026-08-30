@@ -13,7 +13,6 @@ import {
   FaCalendarTimes
 } from "react-icons/fa";
 
-
 function Dashboard() {
 
   const [totalCustomers, setTotalCustomers] = useState(0);
@@ -23,6 +22,8 @@ function Dashboard() {
   const [lowStock, setLowStock] = useState(0);
   const [expiredMedicines, setExpiredMedicines] = useState(0);
 
+  // ================= API URL =================
+  const API_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
 
@@ -33,12 +34,9 @@ function Dashboard() {
       return;
     }
 
-
-    // Total Customers
+    // ================= TOTAL CUSTOMERS =================
     axios
-      .get(
-        `http://localhost:1000/dashboard/total-customers/${user_id}`
-      )
+      .get(`${API_URL}/dashboard/total-customers/${user_id}`)
       .then((response) => {
         setTotalCustomers(response.data.total_customers);
       })
@@ -46,12 +44,9 @@ function Dashboard() {
         console.log("Total Customers Error:", error);
       });
 
-
-    // Total Medicines
+    // ================= TOTAL MEDICINES =================
     axios
-      .get(
-        `http://localhost:1000/dashboard/total-medicines/${user_id}`
-      )
+      .get(`${API_URL}/dashboard/total-medicines/${user_id}`)
       .then((response) => {
         setTotalMedicines(response.data.total_medicines);
       })
@@ -59,12 +54,9 @@ function Dashboard() {
         console.log("Total Medicines Error:", error);
       });
 
-
-    // Total Invoices
+    // ================= TOTAL INVOICES =================
     axios
-      .get(
-        `http://localhost:1000/dashboard/total-invoices/${user_id}`
-      )
+      .get(`${API_URL}/dashboard/total-invoices/${user_id}`)
       .then((response) => {
         setTotalInvoices(response.data.total_invoices);
       })
@@ -72,12 +64,9 @@ function Dashboard() {
         console.log("Total Invoices Error:", error);
       });
 
-
-    // Total Sales
+    // ================= TOTAL SALES =================
     axios
-      .get(
-        `http://localhost:1000/dashboard/total-sales/${user_id}`
-      )
+      .get(`${API_URL}/dashboard/total-sales/${user_id}`)
       .then((response) => {
         setTotalSales(response.data.total_sales);
       })
@@ -85,12 +74,9 @@ function Dashboard() {
         console.log("Total Sales Error:", error);
       });
 
-
-    // Low Stock Medicines
+    // ================= LOW STOCK MEDICINES =================
     axios
-      .get(
-        `http://localhost:1000/dashboard/low-stock/${user_id}`
-      )
+      .get(`${API_URL}/dashboard/low-stock/${user_id}`)
       .then((response) => {
         setLowStock(response.data.low_stock);
       })
@@ -98,12 +84,9 @@ function Dashboard() {
         console.log("Low Stock Error:", error);
       });
 
-
-    // Expired Medicines
+    // ================= EXPIRED MEDICINES =================
     axios
-      .get(
-        `http://localhost:1000/dashboard/expired-medicines/${user_id}`
-      )
+      .get(`${API_URL}/dashboard/expired-medicines/${user_id}`)
       .then((response) => {
         setExpiredMedicines(
           response.data.expired_medicines
@@ -115,21 +98,19 @@ function Dashboard() {
 
   }, []);
 
-
   return (
 
     <div className="dashboard-layout">
 
-      {/* LEFT SIDEBAR */}
+      {/* ================= LEFT SIDEBAR ================= */}
       <Sidebar />
 
-
-      {/* MAIN DASHBOARD */}
+      {/* ================= MAIN DASHBOARD ================= */}
       <main className="dashboard-main">
 
         <div className="dashboard-page">
 
-          {/* Header */}
+          {/* ================= HEADER ================= */}
           <div className="dashboard-header">
 
             <h1>MediStock Dashboard</h1>
@@ -140,10 +121,8 @@ function Dashboard() {
 
           </div>
 
-
-          {/* Cards */}
+          {/* ================= CARDS ================= */}
           <div className="dashboard-cards">
-
 
             {/* Total Customers */}
             <div className="dashboard-card">
@@ -164,7 +143,6 @@ function Dashboard() {
 
             </div>
 
-
             {/* Total Medicines */}
             <div className="dashboard-card">
 
@@ -183,7 +161,6 @@ function Dashboard() {
               </div>
 
             </div>
-
 
             {/* Total Invoices */}
             <div className="dashboard-card">
@@ -204,7 +181,6 @@ function Dashboard() {
 
             </div>
 
-
             {/* Total Sales */}
             <div className="dashboard-card">
 
@@ -223,7 +199,6 @@ function Dashboard() {
               </div>
 
             </div>
-
 
             {/* Low Stock */}
             <div className="dashboard-card low-stock-card">
@@ -244,7 +219,6 @@ function Dashboard() {
 
             </div>
 
-
             {/* Expired Medicines */}
             <div className="dashboard-card expired-card">
 
@@ -264,7 +238,6 @@ function Dashboard() {
 
             </div>
 
-
           </div>
 
         </div>
@@ -274,6 +247,5 @@ function Dashboard() {
     </div>
   );
 }
-
 
 export default Dashboard;

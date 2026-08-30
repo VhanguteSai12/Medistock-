@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+
 import "../css/Profile.css";
 import Sidebar from "../components/Sidebar";
 
-
 function Profile() {
 
+    // ================= API URL =================
+    const API_URL = import.meta.env.VITE_API_URL;
+
+    // ================= USER ID =================
     const user_id = localStorage.getItem("user_id");
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
-
     const [editing, setEditing] = useState(false);
 
+    // ================= LOAD PROFILE =================
     useEffect(() => {
+
+        if (!user_id) {
+            console.log("User ID not found");
+            return;
+        }
 
         loadProfile();
 
@@ -24,17 +33,15 @@ function Profile() {
         try {
 
             const res = await axios.get(
-                `http://localhost:1000/profile/${user_id}`
+                `${API_URL}/profile/${user_id}`
             );
 
             setName(res.data.name);
             setEmail(res.data.email);
 
-        }
+        } catch (error) {
 
-        catch (error) {
-
-            console.log(error);
+            console.log("Profile Error:", error);
 
             alert("Unable To Load Profile");
 
@@ -42,8 +49,10 @@ function Profile() {
 
     };
 
+    // ================= SAVE PROFILE =================
     const handleSave = async () => {
 
+        // Name validation
         if (name.trim() === "") {
 
             alert("Please Enter Name");
@@ -51,6 +60,7 @@ function Profile() {
 
         }
 
+        // Email validation
         if (email.trim() === "") {
 
             alert("Please Enter Email");
@@ -58,10 +68,11 @@ function Profile() {
 
         }
 
+        // Gmail validation
         const emailPattern =
             /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
-        if (!emailPattern.test(email)) {
+        if (!emailPattern.test(email.trim())) {
 
             alert("Enter Valid Gmail Address");
             return;
@@ -71,34 +82,47 @@ function Profile() {
         try {
 
             const res = await axios.put(
-                `http://localhost:1000/profile/${user_id}`,
+
+                `${API_URL}/profile/${user_id}`,
+
                 {
-                    name,
-                    email
+                    name: name.trim(),
+                    email: email.trim()
                 }
+
             );
 
             alert(res.data.message);
 
             setEditing(false);
 
-        }
+        } catch (error) {
 
-        catch (error) {
+            console.log("Update Profile Error:", error);
 
-            console.log(error);
+            if (error.response) {
 
-            alert("Unable To Update Profile");
+                alert(
+                    error.response.data.message ||
+                    "Unable To Update Profile"
+                );
+
+            } else {
+
+                alert("Server is not connected");
+
+            }
 
         }
 
     };
 
-    
     return (
 
         <>
-        <Sidebar />
+
+            <Sidebar />
+
             <div className="profile-container">
 
                 <div className="profile-card">
@@ -107,17 +131,23 @@ function Profile() {
                         Stock Manager Profile
                     </h1>
 
+
+                    {/* ================= USER ID ================= */}
+
                     <div className="profile-field">
 
                         <label>User ID</label>
 
                         <input
                             type="text"
-                            value={user_id}
+                            value={user_id || ""}
                             disabled
                         />
 
                     </div>
+
+
+                    {/* ================= NAME ================= */}
 
                     <div className="profile-field">
 
@@ -134,6 +164,9 @@ function Profile() {
 
                     </div>
 
+
+                    {/* ================= EMAIL ================= */}
+
                     <div className="profile-field">
 
                         <label>Email</label>
@@ -149,41 +182,32 @@ function Profile() {
 
                     </div>
 
+
+                    {/* ================= BUTTONS ================= */}
+
                     <div className="profile-buttons">
 
-                        {
+                        {!editing ? (
 
-                            !editing ?
+                            <button
+                                className="edit-btn"
+                                onClick={() =>
+                                    setEditing(true)
+                                }
+                            >
+                                Edit Profile
+                            </button>
 
-                            (
+                        ) : (
 
-                                <button
-                                    className="edit-btn"
-                                    onClick={() =>
-                                        setEditing(true)
-                                    }
-                                >
-                                    Edit Profile
-                                </button>
+                            <button
+                                className="save-btn"
+                                onClick={handleSave}
+                            >
+                                Save Changes
+                            </button>
 
-                            )
-
-                            :
-
-                            (
-
-                                <button
-                                    className="save-btn"
-                                    onClick={handleSave}
-                                >
-                                    Save Changes
-                                </button>
-
-                            )
-
-                        }
-
-                    
+                        )}
 
                     </div>
 

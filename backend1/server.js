@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 const express = require("express");
-const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
@@ -11,227 +10,271 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const db = require("./db");
 
 // =====================================================
-// MYSQL CONNECTION
+// EMAIL TRANSPORTER
 // =====================================================
-
-const db = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306
-});
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,         
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD  
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+    },
+    tls: {
+        rejectUnauthorized: false
+    }
 });
-
 
 // =====================================================
 // REGISTER API
 // =====================================================
 
 app.post("/register", async (req, res) => {
+    const { name, email, password } = req.body;
 
-  const { name, email, password } = req.body;
-
-  // EMPTY FIELD
-
-  if (!name || !email || !password) {
-    return res.status(400).json({
-      message: "All fields are required"
-    });
-  }
-
-  // GMAIL VALIDATION
-  const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-  if (!gmailRegex.test(email.trim())) {
-    return res.status(400).json({
-      message: "Please enter a valid Gmail address"
-    });
-  }
-
-  const userEmail = email.trim();
-
-  //CHECK USER
-
-  const checkUser = "SELECT user_id FROM users WHERE email = ?";
-
-  db.query(checkUser, [userEmail], async (err, result) => {
-
-    if (err) {
-      console.log("Database Error:", err);
-      return res.status(500).json({ message: "Database error" });
+    if (!name || !email || !password) {
+        return res.status(400).json({
+            message: "All fields are required"
+        });
     }
 
-    //USER EXISTS
+    const gmailRegex =
+        /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
-    if (result.length > 0) {
-      console.log("User already exists:", userEmail);
-      return res.status(409).json({ message: "User already exists" });
+    if (!gmailRegex.test(email.trim())) {
+        return res.status(400).json({
+            message: "Please enter a valid Gmail address"
+        });
     }
 
-    try {
+    const userEmail = email.trim();
 
-      //HASH PASSWORD
+    const checkUser =
+        "SELECT user_id FROM users WHERE email = ?";
 
-      const hashPassword = await bcrypt.hash(password, 10);
-
-      //DATE
-
-      const date = new Date();
-
-      // INSERT USER
-
-      const sql = `
-        INSERT INTO users (name, email, password, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-
-      db.query(
-        sql,
-        [name.trim(), userEmail, hashPassword, date, date],
+    db.query(
+        checkUser,
+        [userEmail],
         async (err, result) => {
+            if (err) {
+                console.log("Database Error:", err);
 
-          if (err) {
-            console.log("Registration Database Error:", err);
-            return res.status(500).json({ message: "Registration failed" });
-          }
+                return res.status(500).json({
+                    message: "Database error"
+                });
+            }
 
-          console.log("User registered successfully:", userEmail);
+            if (result.length > 0) {
+                console.log(
+                    "User already exists:",
+                    userEmail
+                );
 
-          //SEND EMAIL
+                return res.status(409).json({
+                    message: "User already exists"
+                });
+            }
 
-          const mailOptions = {
-            from: `"MediStock" <${process.env.EMAIL_USER}>`,
-            to: userEmail,
-            subject: "✅ MediStock Registration Successful",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <h2 style="color: #2e86de; text-align: center;">Welcome to MediStock 🏥</h2>
-                <p style="font-size: 16px;">Hello <strong>${name.trim()}</strong>,</p>
-                <p style="font-size: 15px; color: #333;">
-                  Your registration for <strong>MediStock Inventory System</strong> has been completed successfully. 🎉
-                </p>
-                <hr style="border: none; border-top: 1px solid #eee;" />
-                <p style="font-size: 13px; color: #888; text-align: center;">
-                  Thank you for registering with MediStock.<br/>
-                  <strong>MediStock Team</strong>
-                </p>
-              </div>
-            `
-          };
+            try {
+                const hashPassword =
+                    await bcrypt.hash(password, 10);
 
-          try {
+                const date = new Date();
 
-            await transporter.sendMail(mailOptions);
-            console.log("Registration email sent to:", userEmail);
+                const sql = `
+                    INSERT INTO users
+                    (name, email, password, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                `;
 
+                db.query(
+                    sql,
+                    [
+                        name.trim(),
+                        userEmail,
+                        hashPassword,
+                        date,
+                        date
+                    ],
+                    async (err, result) => {
+                        if (err) {
+                            console.log(
+                                "Registration Database Error:",
+                                err
+                            );
 
-            return res.status(201).json({
-              message: "Registration successful! A confirmation email has been sent to your inbox."
-            });
+                            return res.status(500).json({
+                                message: "Registration failed"
+                            });
+                        }
 
-          } catch (emailError) {
+                        console.log(
+                            "User registered successfully:",
+                            userEmail
+                        );
 
-            console.log("Email sending error:", emailError.message);
+                        const mailOptions = {
+                            from: `"MediStock" <${process.env.EMAIL_USER}>`,
+                            to: userEmail,
+                            subject:
+                                "MediStock Registration Successful",
+                            html: `
+                                <div style="
+                                    font-family: Arial, sans-serif;
+                                    max-width: 600px;
+                                    margin: auto;
+                                    padding: 30px;
+                                    border: 1px solid #e0e0e0;
+                                    border-radius: 10px;
+                                ">
+                                    <h2 style="
+                                        color: #2e86de;
+                                        text-align: center;
+                                    ">
+                                        Welcome to MediStock 🏥
+                                    </h2>
 
-            return res.status(201).json({
-              message: "Registration successful! (Confirmation email could not be sent)"
-            });
-          }
+                                    <p style="font-size: 16px;">
+                                        Hello
+                                        <strong>${name.trim()}</strong>,
+                                    </p>
+
+                                    <p style="
+                                        font-size: 15px;
+                                        color: #333;
+                                    ">
+                                        Your registration for
+                                        <strong>
+                                            MediStock Inventory System
+                                        </strong>
+                                        has been completed successfully.
+                                    </p>
+
+                                    <hr style="
+                                        border: none;
+                                        border-top: 1px solid #eee;
+                                    " />
+
+                                    <p style="
+                                        font-size: 13px;
+                                        color: #888;
+                                        text-align: center;
+                                    ">
+                                        Thank you for registering with MediStock.
+                                        <br />
+                                        <strong>MediStock Team</strong>
+                                    </p>
+                                </div>
+                            `
+                        };
+
+                        try {
+                            await transporter.sendMail(
+                                mailOptions
+                            );
+
+                            console.log(
+                                "Registration email sent to:",
+                                userEmail
+                            );
+
+                            return res.status(201).json({
+                                message:
+                                    "Registration successful! A confirmation email has been sent to your inbox."
+                            });
+                        } catch (emailError) {
+                            console.log(
+                                "Email sending error:",
+                                emailError.message
+                            );
+
+                            return res.status(201).json({
+                                message:
+                                    "Registration successful! (Confirmation email could not be sent)"
+                            });
+                        }
+                    }
+                );
+            } catch (error) {
+                console.log(
+                    "Registration Error:",
+                    error
+                );
+
+                return res.status(500).json({
+                    message: "Registration failed"
+                });
+            }
         }
-      );
-
-    } catch (error) {
-      console.log("Registration Error:", error);
-      return res.status(500).json({ message: "Registration failed" });
-    }
-  });
+    );
 });
 
-// ================= LOGIN =================
+// =====================================================
+// LOGIN API
+// =====================================================
 
 app.post("/login", (req, res) => {
-
     const { email, password } = req.body;
 
     const sql =
         "SELECT * FROM users WHERE email=?";
 
-    db.query(sql, [email], async (err, result) => {
-
-        if (err) {
-
-            return res.status(500).json({
-                error: err
-            });
-
-        }
-
-        if (result.length === 0) {
-
-            return res.json({
-                message: "User not found"
-            });
-
-        }
-
-        const user = result[0];
-
-        const match = await bcrypt.compare(
-            password,
-            user.password
-        );
-
-        if (!match) {
-
-            return res.json({
-                message: "Invalid Password"
-            });
-
-        }
-
-        res.json({
-
-            message: "Login Successful",
-
-            user: {
-                user_id: user.user_id,
-                name: user.name,
-                email: user.email
+    db.query(
+        sql,
+        [email],
+        async (err, result) => {
+            if (err) {
+                return res.status(500).json({
+                    error: err
+                });
             }
 
-        });
+            if (result.length === 0) {
+                return res.json({
+                    message: "User not found"
+                });
+            }
 
-    });
+            const user = result[0];
 
+            const match =
+                await bcrypt.compare(
+                    password,
+                    user.password
+                );
+
+            if (!match) {
+                return res.json({
+                    message: "Invalid Password"
+                });
+            }
+
+            res.json({
+                message: "Login Successful",
+                user: {
+                    user_id: user.user_id,
+                    name: user.name,
+                    email: user.email
+                }
+            });
+        }
+    );
 });
-
 
 // =====================================================
 // DASHBOARD APIs
 // =====================================================
 
-
 // TOTAL CUSTOMERS
 
-app.get("/dashboard/total-customers/:user_id",
+app.get(
+    "/dashboard/total-customers/:user_id",
     (req, res) => {
-
-        const user_id = req.params.user_id;
+        const { user_id } = req.params;
 
         const sql = `
             SELECT COUNT(DISTINCT customer_id)
@@ -240,34 +283,32 @@ app.get("/dashboard/total-customers/:user_id",
             WHERE user_id=?
         `;
 
-        db.query(sql, [user_id], (err, result) => {
+        db.query(
+            sql,
+            [user_id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        message:
+                            "Error fetching total customers"
+                    });
+                }
 
-            if (err) {
-
-                return res.status(500).json({
-                    message:
-                        "Error fetching total customers"
+                res.json({
+                    total_customers:
+                        result[0].total_customers
                 });
-
             }
-
-            res.json({
-                total_customers:
-                    result[0].total_customers
-            });
-
-        });
-
+        );
     }
 );
 
+// TOTAL MEDICINES
 
-//TOTAL MEDICINES
-
-app.get("/dashboard/total-medicines/:user_id",
+app.get(
+    "/dashboard/total-medicines/:user_id",
     (req, res) => {
-
-        const user_id = req.params.user_id;
+        const { user_id } = req.params;
 
         const sql = `
             SELECT COUNT(*) AS total_medicines
@@ -275,34 +316,32 @@ app.get("/dashboard/total-medicines/:user_id",
             WHERE user_id=?
         `;
 
-        db.query(sql, [user_id], (err, result) => {
+        db.query(
+            sql,
+            [user_id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        message:
+                            "Error fetching total medicines"
+                    });
+                }
 
-            if (err) {
-
-                return res.status(500).json({
-                    message:
-                        "Error fetching total medicines"
+                res.json({
+                    total_medicines:
+                        result[0].total_medicines
                 });
-
             }
-
-            res.json({
-                total_medicines:
-                    result[0].total_medicines
-            });
-
-        });
-
+        );
     }
 );
 
-
 // TOTAL INVOICES
 
-app.get("/dashboard/total-invoices/:user_id",
+app.get(
+    "/dashboard/total-invoices/:user_id",
     (req, res) => {
-
-        const user_id = req.params.user_id;
+        const { user_id } = req.params;
 
         const sql = `
             SELECT COUNT(DISTINCT invoice_no)
@@ -311,71 +350,67 @@ app.get("/dashboard/total-invoices/:user_id",
             WHERE user_id=?
         `;
 
-        db.query(sql, [user_id], (err, result) => {
+        db.query(
+            sql,
+            [user_id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        message:
+                            "Error fetching total invoices"
+                    });
+                }
 
-            if (err) {
-
-                return res.status(500).json({
-                    message:
-                        "Error fetching total invoices"
+                res.json({
+                    total_invoices:
+                        result[0].total_invoices
                 });
-
             }
-
-            res.json({
-                total_invoices:
-                    result[0].total_invoices
-            });
-
-        });
-
+        );
     }
 );
 
+// TOTAL SALES
 
-//TOTAL SALES
-
-app.get("/dashboard/total-sales/:user_id",
+app.get(
+    "/dashboard/total-sales/:user_id",
     (req, res) => {
-
-        const user_id = req.params.user_id;
+        const { user_id } = req.params;
 
         const sql = `
             SELECT
-            COALESCE(SUM(total_amount),0)
-            AS total_sales
+                COALESCE(SUM(total_amount),0)
+                AS total_sales
             FROM customers
             WHERE user_id=?
         `;
 
-        db.query(sql, [user_id], (err, result) => {
+        db.query(
+            sql,
+            [user_id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        message:
+                            "Error fetching total sales"
+                    });
+                }
 
-            if (err) {
-
-                return res.status(500).json({
-                    message:
-                        "Error fetching total sales"
+                res.json({
+                    total_sales:
+                        result[0].total_sales
                 });
-
             }
-
-            res.json({
-                total_sales:
-                    result[0].total_sales
-            });
-
-        });
-
+        );
     }
 );
 
+// LOW STOCK COUNT
 
-//LOW STOCK COUNT
-
-app.get("/dashboard/low-stock/:user_id",
+app.get(
+    "/dashboard/low-stock/:user_id",
     (req, res) => {
-
-        const user_id = req.params.user_id;
+        const { user_id } = req.params;
 
         const sql = `
             SELECT COUNT(*) AS low_stock
@@ -384,34 +419,32 @@ app.get("/dashboard/low-stock/:user_id",
             AND quantity <= 10
         `;
 
-        db.query(sql, [user_id], (err, result) => {
+        db.query(
+            sql,
+            [user_id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        message:
+                            "Error fetching low stock medicines"
+                    });
+                }
 
-            if (err) {
-
-                return res.status(500).json({
-                    message:
-                        "Error fetching low stock medicines"
+                res.json({
+                    low_stock:
+                        result[0].low_stock
                 });
-
             }
-
-            res.json({
-                low_stock:
-                    result[0].low_stock
-            });
-
-        });
-
+        );
     }
 );
 
+// EXPIRED MEDICINES
 
-//EXPIRED MEDICINES
-
-app.get("/dashboard/expired-medicines/:user_id",
+app.get(
+    "/dashboard/expired-medicines/:user_id",
     (req, res) => {
-
-        const user_id = req.params.user_id;
+        const { user_id } = req.params;
 
         const sql = `
             SELECT COUNT(*) AS expired_medicines
@@ -421,37 +454,33 @@ app.get("/dashboard/expired-medicines/:user_id",
             AND expiry_date != '0000-00-00'
         `;
 
-        db.query(sql, [user_id], (err, result) => {
+        db.query(
+            sql,
+            [user_id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        message:
+                            "Error fetching expired medicines"
+                    });
+                }
 
-            if (err) {
-
-                return res.status(500).json({
-                    message:
-                        "Error fetching expired medicines"
+                res.json({
+                    expired_medicines:
+                        result[0].expired_medicines
                 });
-
             }
-
-            res.json({
-                expired_medicines:
-                    result[0].expired_medicines
-            });
-
-        });
-
+        );
     }
 );
-
 
 // =====================================================
 // MEDICINE APIs
 // =====================================================
 
-
 // ADD MEDICINE
 
 app.post("/medicines", (req, res) => {
-
     const {
         user_id,
         medicine_name,
@@ -471,11 +500,9 @@ app.post("/medicines", (req, res) => {
         quantity === undefined ||
         price === undefined
     ) {
-
         return res.status(400).json({
             message: "All fields are required"
         });
-
     }
 
     const today = new Date();
@@ -485,21 +512,17 @@ app.post("/medicines", (req, res) => {
     expiry.setHours(0, 0, 0, 0);
 
     if (expiry < today) {
-
         return res.status(400).json({
             message:
                 "Expired medicine cannot be added."
         });
-
     }
 
     if (Number(quantity) < 0) {
-
         return res.status(400).json({
             message:
                 "Quantity cannot be negative"
         });
-
     }
 
     const sql = `
@@ -534,73 +557,64 @@ app.post("/medicines", (req, res) => {
             date
         ],
         (err, result) => {
-
             if (err) {
-
                 return res.status(500).json({
                     error: err
                 });
-
             }
 
             res.json({
-
                 message:
                     "Medicine Added Successfully",
-
                 medicine_id:
                     result.insertId
-
             });
-
         }
     );
-
 });
-
 
 // GET ALL MEDICINES
 
-app.get("/medicines/:user_id", (req, res) => {
-
-    const { user_id } = req.params;
-
-    const sql = `
-        SELECT
-            medicine_id,
-            medicine_name,
-            company_name,
-            batch_no,
-            expiry_date,
-            quantity,
-            price
-        FROM medicines
-        WHERE user_id=?
-        ORDER BY medicine_name ASC
-    `;
-
-    db.query(sql, [user_id], (err, result) => {
-
-        if (err) {
-
-            return res.status(500).json({
-                error: err
-            });
-
-        }
-
-        res.json(result);
-
-    });
-
-});
-
-
-//UPDATE MEDICINE
-
-app.put("/medicines/:user_id/:medicine_id",
+app.get(
+    "/medicines/:user_id",
     (req, res) => {
+        const { user_id } = req.params;
 
+        const sql = `
+            SELECT
+                medicine_id,
+                medicine_name,
+                company_name,
+                batch_no,
+                expiry_date,
+                quantity,
+                price
+            FROM medicines
+            WHERE user_id=?
+            ORDER BY medicine_name ASC
+        `;
+
+        db.query(
+            sql,
+            [user_id],
+            (err, result) => {
+                if (err) {
+                    return res.status(500).json({
+                        error: err
+                    });
+                }
+
+                res.json(result);
+            }
+        );
+    }
+);
+
+// UPDATE MEDICINE
+
+app.put(
+    "/medicines/:user_id/:medicine_id",
+    (req, res) => {
         const {
             user_id,
             medicine_id
@@ -622,21 +636,17 @@ app.put("/medicines/:user_id/:medicine_id",
         expiry.setHours(0, 0, 0, 0);
 
         if (expiry < today) {
-
             return res.status(400).json({
                 message:
                     "Expired medicine cannot be updated."
             });
-
         }
 
         if (Number(quantity) < 0) {
-
             return res.status(400).json({
                 message:
                     "Quantity cannot be negative"
             });
-
         }
 
         const sql = `
@@ -667,41 +677,33 @@ app.put("/medicines/:user_id/:medicine_id",
                 user_id
             ],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 if (result.affectedRows === 0) {
-
                     return res.status(404).json({
                         message:
                             "Medicine Not Found"
                     });
-
                 }
 
                 res.json({
                     message:
                         "Medicine Updated Successfully"
                 });
-
             }
         );
-
     }
 );
 
-
 // DELETE MEDICINE
 
-app.delete("/medicines/:user_id/:medicine_id",
+app.delete(
+    "/medicines/:user_id/:medicine_id",
     (req, res) => {
-
         const {
             user_id,
             medicine_id
@@ -717,41 +719,33 @@ app.delete("/medicines/:user_id/:medicine_id",
             sql,
             [medicine_id, user_id],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 if (result.affectedRows === 0) {
-
                     return res.status(404).json({
                         message:
                             "Medicine Not Found"
                     });
-
                 }
 
                 res.json({
                     message:
                         "Medicine Deleted Successfully"
                 });
-
             }
         );
-
     }
 );
 
+// SEARCH MEDICINE
 
-//SEARCH MEDICINE
-
-app.get("/medicines/search/:user_id/:name",
+app.get(
+    "/medicines/search/:user_id/:name",
     (req, res) => {
-
         const {
             user_id,
             name
@@ -770,43 +764,32 @@ app.get("/medicines/search/:user_id/:name",
             sql,
             [user_id, name],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 if (result.length === 0) {
-
                     return res.json({
                         found: false
                     });
-
                 }
 
                 res.json({
-
                     found: true,
-
                     medicine: result[0]
-
                 });
-
             }
         );
-
     }
 );
 
+// LOW STOCK MEDICINES
 
-//  LOW STOCK MEDICINES
-
-app.get("/medicines/low-stock/:user_id",
+app.get(
+    "/medicines/low-stock/:user_id",
     (req, res) => {
-
         const { user_id } = req.params;
 
         const sql = `
@@ -824,42 +807,34 @@ app.get("/medicines/low-stock/:user_id",
             sql,
             [user_id],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 res.json(result);
-
             }
         );
-
     }
 );
-
 
 // =====================================================
 // CUSTOMER APIs
 // =====================================================
 
+// GET CUSTOMER DETAILS
 
-//GET CUSTOMER DETAILS 
-
-app.get("/customer/:user_id/:customer_id",
+app.get(
+    "/customer/:user_id/:customer_id",
     (req, res) => {
-
         const {
             user_id,
             customer_id
         } = req.params;
 
         const sql = `
-            SELECT
-                customer_name
+            SELECT customer_name
             FROM customers
             WHERE user_id=?
             AND customer_id=?
@@ -870,50 +845,37 @@ app.get("/customer/:user_id/:customer_id",
             sql,
             [user_id, customer_id],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 if (result.length === 0) {
-
                     return res.json({
                         exists: false
                     });
-
                 }
 
-                // Only customer name is automatic
-
                 res.json({
-
                     exists: true,
-
                     customer: {
                         customer_name:
                             result[0].customer_name
                     }
-
                 });
-
             }
         );
-
     }
 );
-
 
 // =====================================================
 // GENERATE BILL
 // =====================================================
 
-app.post("/customers/generate-bill",
+app.post(
+    "/customers/generate-bill",
     async (req, res) => {
-
         const {
             customer_id,
             customer_name,
@@ -923,7 +885,6 @@ app.post("/customers/generate-bill",
             user_id,
             items
         } = req.body;
-
 
         if (
             !customer_id ||
@@ -935,26 +896,16 @@ app.post("/customers/generate-bill",
             !items ||
             items.length === 0
         ) {
-
             return res.json({
-
                 success: false,
-
-                message:
-                    "All fields are required."
-
+                message: "All fields are required."
             });
-
         }
-
 
         const connection = db.promise();
 
-
         try {
-
             await connection.beginTransaction();
-
 
             const [customerResult] =
                 await connection.query(
@@ -971,52 +922,34 @@ app.post("/customers/generate-bill",
                     ]
                 );
 
-
             if (customerResult.length > 0) {
-
                 if (
                     customerResult[0]
                         .customer_name
-                        .toLowerCase()
-                    !==
+                        .toLowerCase() !==
                     customer_name
                         .toLowerCase()
                 ) {
-
                     await connection.rollback();
 
                     return res.json({
-
                         success: false,
-
                         message:
                             "Customer Name does not match Customer ID."
-
                     });
-
                 }
-
             }
 
-
-            // =================================================
             // GENERATE INVOICE
-            // =================================================
 
             const invoice_no =
                 "INV" + Date.now();
 
-
             let grandTotal = 0;
 
-
-            // =================================================
             // CHECK ALL MEDICINES
-            // =================================================
 
             for (const item of items) {
-
-
                 const [medicine] =
                     await connection.query(
                         `
@@ -1036,54 +969,35 @@ app.post("/customers/generate-bill",
                         ]
                     );
 
-
                 if (medicine.length === 0) {
-
                     await connection.rollback();
 
                     return res.json({
-
                         success: false,
-
                         message:
                             "Medicine Not Found"
-
                     });
-
                 }
 
+                const med = medicine[0];
 
-                const med =
-                    medicine[0];
-
-
-                
                 // EXPIRY CHECK
-               
 
                 if (
                     med.expiry_date &&
-                    new Date(med.expiry_date)
-                    < new Date()
+                    new Date(med.expiry_date) <
+                        new Date()
                 ) {
-
                     await connection.rollback();
 
                     return res.json({
-
                         success: false,
-
                         message:
                             `${med.medicine_name} is expired`
-
                     });
-
                 }
 
-
-                
                 // QUANTITY CHECK
-               
 
                 const requestedQuantity =
                     Number(item.quantity);
@@ -1091,62 +1005,39 @@ app.post("/customers/generate-bill",
                 const availableQuantity =
                     Number(med.quantity);
 
-
-                if (
-                    requestedQuantity <= 0
-                ) {
-
+                if (requestedQuantity <= 0) {
                     await connection.rollback();
 
                     return res.json({
-
                         success: false,
-
                         message:
                             "Invalid medicine quantity"
-
                     });
-
                 }
 
-
                 if (
-                    availableQuantity
-                    < requestedQuantity
+                    availableQuantity <
+                    requestedQuantity
                 ) {
-
                     await connection.rollback();
 
                     return res.json({
-
                         success: false,
-
                         message:
                             `${med.medicine_name} Out Of Stock`
-
                     });
-
                 }
 
-
-                
                 // CALCULATE TOTAL
-               
 
                 grandTotal +=
-                    Number(med.price)
-                    * requestedQuantity;
-
+                    Number(med.price) *
+                    requestedQuantity;
             }
 
             // INSERT BILL + DECREASE STOCK
-            
 
             for (const item of items) {
-
-
-                // Get medicine price again
-
                 const [medicine] =
                     await connection.query(
                         `
@@ -1163,19 +1054,13 @@ app.post("/customers/generate-bill",
                         ]
                     );
 
-
-                const med =
-                    medicine[0];
-
+                const med = medicine[0];
 
                 const total =
-                    Number(med.price)
-                    * Number(item.quantity);
+                    Number(med.price) *
+                    Number(item.quantity);
 
-
-                // =================================================
                 // INSERT CUSTOMER BILL
-                // =================================================
 
                 await connection.query(
                     `
@@ -1212,7 +1097,6 @@ app.post("/customers/generate-bill",
                 );
 
                 // DECREASE MEDICINE STOCK
-               
 
                 const [updateResult] =
                     await connection.query(
@@ -1220,7 +1104,7 @@ app.post("/customers/generate-bill",
                         UPDATE medicines
                         SET
                             quantity =
-                            quantity - ?,
+                                quantity - ?,
                             updated_at = ?
                         WHERE medicine_id=?
                         AND user_id=?
@@ -1235,86 +1119,52 @@ app.post("/customers/generate-bill",
                         ]
                     );
 
-
-                // IMPORTANT:
-                // If stock was not decreased,
-                // rollback complete bill.
-
                 if (
                     updateResult.affectedRows === 0
                 ) {
-
                     await connection.rollback();
 
                     return res.json({
-
                         success: false,
-
                         message:
                             `${med.medicine_name} stock update failed`
-
                     });
-
                 }
-
             }
 
-
-            // =================================================
             // COMMIT
-            // =================================================
 
             await connection.commit();
 
-
             return res.json({
-
                 success: true,
-
                 invoice_no,
-
-                grand_total:
-                    grandTotal,
-
+                grand_total: grandTotal,
                 message:
                     "Bill Generated Successfully"
-
             });
-
-        }
-
-
-        catch (err) {
-
+        } catch (err) {
             await connection.rollback();
 
             console.log(err);
 
             return res.status(500).json({
-
                 success: false,
-
-                message:
-                    "Server Error"
-
+                message: "Server Error"
             });
-
         }
-
     }
 );
-
 
 // =====================================================
 // INVOICE APIs
 // =====================================================
 
+// GET INVOICE
 
-//GET INVOICE
-
-app.get("/invoice/:invoice_no",
+app.get(
+    "/invoice/:invoice_no",
     (req, res) => {
-
         const { invoice_no } = req.params;
 
         const sql = `
@@ -1331,7 +1181,7 @@ app.get("/invoice/:invoice_no",
                 c.total_amount
             FROM customers c
             INNER JOIN medicines m
-            ON c.medicine_id=m.medicine_id
+                ON c.medicine_id=m.medicine_id
             WHERE c.invoice_no=?
         `;
 
@@ -1339,71 +1189,47 @@ app.get("/invoice/:invoice_no",
             sql,
             [invoice_no],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 if (result.length === 0) {
-
                     return res.json({
-
                         success: false,
-
                         message:
                             "Invoice Not Found"
-
                     });
-
                 }
-
 
                 let grand_total = 0;
 
-
                 result.forEach(item => {
-
                     grand_total +=
-                        Number(item.total_amount);
-
+                        Number(
+                            item.total_amount
+                        );
                 });
-
 
                 res.json({
-
                     success: true,
-
                     invoice_no,
-
                     customer_name:
                         result[0].customer_name,
-
                     customer_id:
                         result[0].customer_id,
-
                     mobile:
                         result[0].mobile,
-
                     doctor_name:
                         result[0].doctor_name,
-
                     visit_date:
                         result[0].visit_date,
-
-                    medicines:
-                        result,
-
+                    medicines: result,
                     grand_total
-
                 });
-
             }
         );
-
     }
 );
 
@@ -1411,12 +1237,11 @@ app.get("/invoice/:invoice_no",
 // CUSTOMER HISTORY APIs
 // =====================================================
 
+// CUSTOMER HISTORY
 
-//CUSTOMER HISTORY 
-
-app.get("/customers/history/:user_id",
+app.get(
+    "/customers/history/:user_id",
     (req, res) => {
-
         const { user_id } = req.params;
 
         const sql = `
@@ -1449,30 +1274,23 @@ app.get("/customers/history/:user_id",
             sql,
             [user_id],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 res.json(result);
-
             }
         );
-
     }
 );
-
 
 // SEARCH CUSTOMER HISTORY
 
 app.get(
     "/customers/history/search/:user_id/:keyword",
     (req, res) => {
-
         const {
             user_id,
             keyword
@@ -1523,34 +1341,27 @@ app.get(
                 search
             ],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 res.json(result);
-
             }
         );
-
     }
 );
-
 
 // =====================================================
 // PROFILE APIs
 // =====================================================
 
+// GET PROFILE
 
-//  GET PROFILE
-
-app.get("/profile/:user_id",
+app.get(
+    "/profile/:user_id",
     (req, res) => {
-
         const { user_id } = req.params;
 
         const sql = `
@@ -1566,38 +1377,30 @@ app.get("/profile/:user_id",
             sql,
             [user_id],
             (err, result) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 if (result.length === 0) {
-
                     return res.status(404).json({
                         message:
                             "User Not Found"
                     });
-
                 }
 
                 res.json(result[0]);
-
             }
         );
-
     }
 );
 
+// UPDATE PROFILE
 
-// UPDATE PROFILE 
-
-app.put("/profile/:user_id",
+app.put(
+    "/profile/:user_id",
     (req, res) => {
-
         const { user_id } = req.params;
 
         const {
@@ -1606,12 +1409,10 @@ app.put("/profile/:user_id",
         } = req.body;
 
         if (!name || !email) {
-
             return res.json({
                 message:
                     "All Fields Required"
             });
-
         }
 
         const sql = `
@@ -1630,321 +1431,285 @@ app.put("/profile/:user_id",
                 user_id
             ],
             (err) => {
-
                 if (err) {
-
                     return res.status(500).json({
                         error: err
                     });
-
                 }
 
                 res.json({
-
                     message:
                         "Profile Updated Successfully"
-
                 });
-
             }
         );
-
     }
 );
 
-
-
-// ==========================================
+// =====================================================
 // MEDISTOCK AI CHATBOT
-// ==========================================
+// =====================================================
 
-app.post("/chatbot", async (req, res) => {
+app.post(
+    "/chatbot",
+    async (req, res) => {
+        try {
+            const {
+                question,
+                user_id
+            } = req.body;
 
-    try {
+            // VALIDATION
 
-        const { question, user_id } = req.body;
+            if (
+                !question ||
+                !question.trim()
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Question is required"
+                });
+            }
 
-        // ==========================================
-        // VALIDATION
-        // ==========================================
+            if (!user_id) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "User ID is required"
+                });
+            }
 
-        if (!question || !question.trim()) {
+            // CURRENT DATE
 
-            return res.status(400).json({
-                success: false,
-                message: "Question is required"
-            });
-
-        }
-
-        if (!user_id) {
-
-            return res.status(400).json({
-                success: false,
-                message: "User ID is required"
-            });
-
-        }
-
-        // CURRENT DATE
-        
-
-        const [dateResult] = await db.promise().query(
-            `SELECT CURDATE() AS today`
-        );
-
-        const today = dateResult[0].today;
-
-        // LOGGED-IN USER
-       
-
-        const [users] = await db.promise().query(
-            `
-            SELECT
-                user_id,
-                name,
-                email
-            FROM users
-            WHERE user_id = ?
-            `,
-            [user_id]
-        );
-
-
-        if (users.length === 0) {
-
-            return res.status(404).json({
-                success: false,
-                message: "User not found"
-            });
-
-        }
-
-
-        const currentUser = users[0];
-
-
-        // MEDICINES
-
-        const [medicines] = await db.promise().query(
-            `
-            SELECT
-                medicine_id,
-                medicine_name,
-                company_name,
-                batch_no,
-                expiry_date,
-                quantity,
-                price
-            FROM medicines
-            WHERE user_id = ?
-            ORDER BY medicine_name ASC
-            `,
-            [user_id]
-        );
-
-
-        // CUSTOMERS / BILL ITEMS
-
-        const [customers] = await db.promise().query(
-            `
-            SELECT
-                c.customer_item_id,
-                c.invoice_no,
-                c.customer_id,
-                c.customer_name,
-                c.mobile,
-                c.doctor_name,
-                c.medicine_id,
-                m.medicine_name,
-                m.company_name,
-                m.price,
-                c.quantity,
-                c.total_amount,
-                c.visit_date,
-                c.bill_status
-
-            FROM customers c
-
-            LEFT JOIN medicines m
-                ON c.medicine_id = m.medicine_id
-
-            WHERE c.user_id = ?
-
-            ORDER BY c.visit_date DESC
-            `,
-            [user_id]
-        );
-
-        // Low stock = quantity <= 10
-
-        const lowStockMedicines = medicines.filter(
-            medicine =>
-                Number(medicine.quantity) <= 10
-        );
-
-        // EXPIRED MEDICINES
-        
-
-        const expiredMedicines = medicines.filter(
-            medicine => {
-
-                if (!medicine.expiry_date) {
-                    return false;
-                }
-
-                return (
-                    new Date(medicine.expiry_date) <
-                    new Date(today)
+            const [dateResult] =
+                await db.promise().query(
+                    `SELECT CURDATE() AS today`
                 );
 
-            }
-        );
+            const today =
+                dateResult[0].today;
 
+            // LOGGED-IN USER
 
-        
-        // UNIQUE CUSTOMERS
+            const [users] =
+                await db.promise().query(
+                    `
+                    SELECT
+                        user_id,
+                        name,
+                        email
+                    FROM users
+                    WHERE user_id = ?
+                    `,
+                    [user_id]
+                );
 
-        const uniqueCustomers =
-            new Set(
-                customers.map(
-                    customer => customer.customer_id
-                )
-            );
-
-
-      
-        // UNIQUE INVOICES
-
-        const uniqueInvoices =
-            new Set(
-                customers
-                    .map(customer => customer.invoice_no)
-                    .filter(Boolean)
-            );
-
-
-       
-        // TOTAL SALES
-       
-
-        const totalSales =
-            customers.reduce(
-                (total, customer) => {
-
-                    return (
-                        total +
-                        Number(
-                            customer.total_amount || 0
-                        )
-                    );
-
-                },
-                0
-            );
-
-
-        
-        // TOTAL MEDICINE STOCK
-        
-
-        const totalMedicineUnits =
-            medicines.reduce(
-                (total, medicine) => {
-
-                    return (
-                        total +
-                        Number(
-                            medicine.quantity || 0
-                        )
-                    );
-
-                },
-                0
-            );
-
-
-        
-        // MEDISTOCK DATA
-       
-
-        const medistockData = {
-
-            current_user: {
-
-                user_id: currentUser.user_id,
-
-                name: currentUser.name,
-
-                email: currentUser.email
-
-            },
-
-
-            summary: {
-
-                total_medicine_types:
-                    medicines.length,
-
-                total_medicine_units:
-                    totalMedicineUnits,
-
-                low_stock_count:
-                    lowStockMedicines.length,
-
-                expired_medicine_count:
-                    expiredMedicines.length,
-
-                total_customers:
-                    uniqueCustomers.size,
-
-                total_invoice_count:
-                    uniqueInvoices.size,
-
-                total_bill_items:
-                    customers.length,
-
-                total_sales:
-                    totalSales
-
-            },
-
-
-            medicines: {
-
-                all: medicines,
-
-                low_stock:
-                    lowStockMedicines,
-
-                expired:
-                    expiredMedicines
-
-            },
-
-
-            customers: {
-
-                all: customers
-
-            },
-
-
-            invoices: {
-
-                all: customers
-
+            if (users.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message:
+                        "User not found"
+                });
             }
 
-        };
+            const currentUser =
+                users[0];
 
+            // MEDICINES
 
-        // ==========================================
-        // SYSTEM PROMPT
-        // ==========================================
+            const [medicines] =
+                await db.promise().query(
+                    `
+                    SELECT
+                        medicine_id,
+                        medicine_name,
+                        company_name,
+                        batch_no,
+                        expiry_date,
+                        quantity,
+                        price
+                    FROM medicines
+                    WHERE user_id = ?
+                    ORDER BY medicine_name ASC
+                    `,
+                    [user_id]
+                );
 
-        const systemPrompt = `
+            // CUSTOMERS / BILL ITEMS
 
+            const [customers] =
+                await db.promise().query(
+                    `
+                    SELECT
+                        c.customer_item_id,
+                        c.invoice_no,
+                        c.customer_id,
+                        c.customer_name,
+                        c.mobile,
+                        c.doctor_name,
+                        c.medicine_id,
+                        m.medicine_name,
+                        m.company_name,
+                        m.price,
+                        c.quantity,
+                        c.total_amount,
+                        c.visit_date,
+                        c.bill_status
+                    FROM customers c
+                    LEFT JOIN medicines m
+                        ON c.medicine_id =
+                           m.medicine_id
+                    WHERE c.user_id = ?
+                    ORDER BY c.visit_date DESC
+                    `,
+                    [user_id]
+                );
+
+            // LOW STOCK
+
+            const lowStockMedicines =
+                medicines.filter(
+                    medicine =>
+                        Number(
+                            medicine.quantity
+                        ) <= 10
+                );
+
+            // EXPIRED MEDICINES
+
+            const expiredMedicines =
+                medicines.filter(
+                    medicine => {
+                        if (
+                            !medicine.expiry_date
+                        ) {
+                            return false;
+                        }
+
+                        return (
+                            new Date(
+                                medicine.expiry_date
+                            ) <
+                            new Date(today)
+                        );
+                    }
+                );
+
+            // UNIQUE CUSTOMERS
+
+            const uniqueCustomers =
+                new Set(
+                    customers.map(
+                        customer =>
+                            customer.customer_id
+                    )
+                );
+
+            // UNIQUE INVOICES
+
+            const uniqueInvoices =
+                new Set(
+                    customers
+                        .map(
+                            customer =>
+                                customer.invoice_no
+                        )
+                        .filter(Boolean)
+                );
+
+            // TOTAL SALES
+
+            const totalSales =
+                customers.reduce(
+                    (total, customer) => {
+                        return (
+                            total +
+                            Number(
+                                customer.total_amount ||
+                                0
+                            )
+                        );
+                    },
+                    0
+                );
+
+            // TOTAL MEDICINE STOCK
+
+            const totalMedicineUnits =
+                medicines.reduce(
+                    (total, medicine) => {
+                        return (
+                            total +
+                            Number(
+                                medicine.quantity ||
+                                0
+                            )
+                        );
+                    },
+                    0
+                );
+
+            // MEDISTOCK DATA
+
+            const medistockData = {
+                current_user: {
+                    user_id:
+                        currentUser.user_id,
+                    name:
+                        currentUser.name,
+                    email:
+                        currentUser.email
+                },
+
+                summary: {
+                    total_medicine_types:
+                        medicines.length,
+
+                    total_medicine_units:
+                        totalMedicineUnits,
+
+                    low_stock_count:
+                        lowStockMedicines.length,
+
+                    expired_medicine_count:
+                        expiredMedicines.length,
+
+                    total_customers:
+                        uniqueCustomers.size,
+
+                    total_invoice_count:
+                        uniqueInvoices.size,
+
+                    total_bill_items:
+                        customers.length,
+
+                    total_sales:
+                        totalSales
+                },
+
+                medicines: {
+                    all: medicines,
+
+                    low_stock:
+                        lowStockMedicines,
+
+                    expired:
+                        expiredMedicines
+                },
+
+                customers: {
+                    all: customers
+                },
+
+                invoices: {
+                    all: customers
+                }
+            };
+
+            // SYSTEM PROMPT
+
+            const systemPrompt = `
 You are "MediStock Assistant".
 
 You are the personalized AI assistant of the
@@ -2022,65 +1787,46 @@ IMPORTANT DATA RULES
    answer normally using your knowledge of the
    MediStock system.
 
-8. You may answer questions even if the user does
-   not use exact words such as "MediStock",
-   "medicine", "customer", etc., as long as the
-   question clearly refers to the MediStock system.
+8. Understand natural language.
 
-9. Understand natural language.
+9. For medicine stock questions, use the actual
+   quantity from the database.
 
-Examples:
-
-"How do I login?"
-"How can I enter the system?"
-"How can I sign in?"
-
-These all mean the same thing.
-
-10. For medicine stock questions, use the actual
-    quantity from the database.
-
-11. LOW STOCK RULE:
-
+10. LOW STOCK RULE:
     A medicine is considered low stock when:
-
     quantity <= 10
 
-12. EXPIRED RULE:
-
+11. EXPIRED RULE:
     A medicine is expired when:
-
     expiry_date < today's date
 
-13. Today's database date is:
-
+12. Today's database date is:
     ${today}
 
-14. For count questions, give the correct number.
+13. For count questions, give the correct number.
 
-15. For list questions, give the relevant names.
+14. For list questions, give the relevant names.
 
-16. For price questions, give the actual price.
+15. For price questions, give the actual price.
 
-17. For company questions, give the actual company.
+16. For company questions, give the actual company.
 
-18. For expiry questions, give the actual expiry date.
+17. For expiry questions, give the actual expiry date.
 
-19. For customer questions, use the customer's
-    actual database information.
+18. For customer questions, use actual database
+    information.
 
-20. For invoice questions, use the actual invoice data.
+19. For invoice questions, use actual invoice data.
 
-21. For sales questions, use the actual sales data.
+20. For sales questions, use actual sales data.
 
-22. Keep answers SHORT and clear.
+21. Keep answers SHORT and clear.
 
-23. Normally answer in 1-2 sentences.
+22. Normally answer in 1-2 sentences.
 
-24. If the user asks for a list, you may provide
-    a short list.
+23. If the user asks for a list, provide a short list.
 
-25. Do not give unnecessary explanations.
+24. Do not give unnecessary explanations.
 
 ==========================================
 GENERAL MEDISTOCK KNOWLEDGE
@@ -2135,160 +1881,129 @@ the required data is already present above.
 Do not invent information.
 
 Keep the response concise.
-
 `;
 
+            // OPENROUTER API
 
-        
-        // OPENROUTER API
-     
+            const response = await fetch(
+                "https://openrouter.ai/api/v1/chat/completions",
+                {
+                    method: "POST",
 
-        const response = await fetch(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-                method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
 
-                headers: {
+                        "Authorization":
+                            `Bearer ${process.env.OPENROUTER_API_KEY}`
+                    },
 
-                    "Content-Type":
-                        "application/json",
+                    body: JSON.stringify({
+                        model:
+                            "openai/gpt-4o-mini",
 
-                    "Authorization":
-                        `Bearer ${process.env.OPENROUTER_API_KEY}`
+                        messages: [
+                            {
+                                role: "system",
+                                content:
+                                    systemPrompt
+                            },
+                            {
+                                role: "user",
+                                content:
+                                    question.trim()
+                            }
+                        ],
 
-                },
+                        temperature: 0,
 
-                body: JSON.stringify({
+                        max_tokens: 150
+                    })
+                }
+            );
 
-                    model: "openai/gpt-4o-mini",
+            // OPENROUTER RESPONSE
 
-                    messages: [
+            const data =
+                await response.json();
 
-                        {
-                            role: "system",
-                            content: systemPrompt
-                        },
+            // API ERROR
 
-                        {
-                            role: "user",
-                            content: question.trim()
-                        }
+            if (!response.ok) {
+                console.log(
+                    "OpenRouter Error:",
+                    data
+                );
 
-                    ],
-
-                    temperature: 0,
-
-                    max_tokens: 150
-
-                })
-
+                return res.status(500).json({
+                    success: false,
+                    message:
+                        "Chatbot AI service error"
+                });
             }
-        );
 
+            // AI ANSWER
 
-       
-        // OPENROUTER RESPONSE
-        
+            const answer =
+                data?.choices?.[0]
+                    ?.message?.content;
 
-        const data =
-            await response.json();
+            if (!answer) {
+                return res.status(500).json({
+                    success: false,
+                    message:
+                        "No answer received from chatbot"
+                });
+            }
 
+            // SEND ANSWER
 
-     
-        // API ERROR
-       
+            return res.json({
+                success: true,
+                answer: answer.trim()
+            });
 
-        if (!response.ok) {
-
-            console.log(
-                "OpenRouter Error:",
-                data
+        } catch (error) {
+            console.error(
+                "Chatbot Error:",
+                error
             );
 
             return res.status(500).json({
-
                 success: false,
-
                 message:
-                    "Chatbot AI service error"
-
+                    "Chatbot server error"
             });
-
         }
-
-
-        
-        // AI ANSWER
-      
-
-        const answer =
-            data?.choices?.[0]?.message?.content;
-
-
-        if (!answer) {
-
-            return res.status(500).json({
-
-                success: false,
-
-                message:
-                    "No answer received from chatbot"
-
-            });
-
-        }
-
-
-        
-        // SEND ANSWER
-       
-
-        return res.json({
-
-            success: true,
-
-            answer: answer.trim()
-
-        });
-
     }
+);
 
-
-   
-    // SERVER ERROR
-   
-
-    catch (error) {
-
-        console.error(
-            "Chatbot Error:",
-            error
-        );
-
-        return res.status(500).json({
-
-            success: false,
-
-            message:
-                "Chatbot server error"
-
-        });
-
-    }
-
-});
+// =====================================================
 // HOME / SERVER TEST ROUTE
+// =====================================================
+
 app.get("/", (req, res) => {
     res.json({
         success: true,
-        message: "MediStock Backend is Live 🚀",
+        message:
+            "MediStock Backend is Live 🚀",
         status: "Running"
     });
 });
+
+// =====================================================
 // SERVER
+// =====================================================
 
-const PORT = process.env.PORT || 1000;
+const PORT =
+    process.env.PORT || 1000;
 
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+        console.log(
+            `Server running on port ${PORT}`
+        );
+    }
+);

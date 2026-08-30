@@ -5,6 +5,11 @@ import Sidebar from "../components/Sidebar";
 
 function Chatbot() {
 
+    // =========================
+    // API URL
+    // =========================
+    const API_URL = import.meta.env.VITE_API_URL;
+
     const [messages, setMessages] = useState([
         {
             sender: "bot",
@@ -28,14 +33,11 @@ function Chatbot() {
             return;
         }
 
-
         // Get logged-in user ID
         const user_id = localStorage.getItem("user_id");
 
-
         console.log("Chatbot User ID:", user_id);
         console.log("Question:", question);
-
 
         // Check user ID
         if (!user_id) {
@@ -51,7 +53,6 @@ function Chatbot() {
             return;
         }
 
-
         // Show user message
         setMessages(prev => [
             ...prev,
@@ -61,24 +62,20 @@ function Chatbot() {
             }
         ]);
 
-
         setInput("");
         setLoading(true);
-
 
         try {
 
             const response = await axios.post(
-                "http://localhost:1000/chatbot",
+                `${API_URL}/chatbot`,
                 {
                     user_id: Number(user_id),
                     question: question
                 }
             );
 
-
             console.log("Chatbot Response:", response.data);
-
 
             // Bot answer
             setMessages(prev => [
@@ -97,7 +94,6 @@ function Chatbot() {
                 "Chatbot Error:",
                 error.response?.data || error.message
             );
-
 
             setMessages(prev => [
                 ...prev,
@@ -147,8 +143,8 @@ function Chatbot() {
     return (
 
         <div className="chatbot-container">
-            <Sidebar/>
 
+            <Sidebar />
 
             {/* ================= HEADER ================= */}
 
@@ -161,15 +157,16 @@ function Chatbot() {
                     </div>
 
                     <div>
+
                         <h1>MediStock Assistant</h1>
 
                         <p>
                             Your personalized inventory assistant
                         </p>
+
                     </div>
 
                 </div>
-
 
                 <button
                     className="clear-btn"
@@ -179,7 +176,6 @@ function Chatbot() {
                 </button>
 
             </div>
-
 
 
             {/* ================= CHAT AREA ================= */}
@@ -207,7 +203,6 @@ function Chatbot() {
 
                         )}
 
-
                         <div
                             className={
                                 message.sender === "user"
@@ -217,7 +212,6 @@ function Chatbot() {
                         >
                             {message.text}
                         </div>
-
 
                         {/* User Icon */}
 
@@ -232,7 +226,6 @@ function Chatbot() {
                     </div>
 
                 ))}
-
 
 
                 {/* Loading */}
@@ -256,7 +249,6 @@ function Chatbot() {
             </div>
 
 
-
             {/* ================= INPUT AREA ================= */}
 
             <div className="chatbot-input-area">
@@ -270,7 +262,6 @@ function Chatbot() {
                     disabled={loading}
                 />
 
-
                 <button
                     className="send-btn"
                     onClick={sendMessage}
@@ -280,7 +271,6 @@ function Chatbot() {
                 </button>
 
             </div>
-
 
 
             {/* ================= FOOTER ================= */}
