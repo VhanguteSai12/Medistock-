@@ -2018,7 +2018,7 @@ Keep the response concise.
 // =====================================================
 
 app.get("/health", (req, res) => {
-    res.json({ status: "ok", version: "1.2.0", timestamp: new Date().toISOString() });
+    res.json({ status: "ok", version: "1.3.0", timestamp: new Date().toISOString() });
 });
 
 app.get("/", (req, res) => {
