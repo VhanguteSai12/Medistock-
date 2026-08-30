@@ -1,4 +1,4 @@
-require("dotenv").config();
+﻿require("dotenv").config();
 
 const express = require("express");
 const bcrypt = require("bcrypt");
@@ -1482,536 +1482,307 @@ app.put(
 );
 
 // =====================================================
-// MEDISTOCK AI CHATBOT
+// MEDISTOCK CHATBOT — LOCAL RULE-BASED ENGINE
+// No external API. Instant answers from DB data.
 // =====================================================
 
 app.post(
     "/chatbot",
     async (req, res) => {
         try {
-            const {
-                question,
-                user_id
-            } = req.body;
+            const { question, user_id } = req.body;
 
-            // VALIDATION
-
-            if (
-                !question ||
-                !question.trim()
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    message:
-                        "Question is required"
-                });
+            // --- VALIDATION ---
+            if (!question || !question.trim()) {
+                return res.status(400).json({ success: false, message: "Question is required" });
             }
-
             if (!user_id) {
-                return res.status(400).json({
-                    success: false,
-                    message:
-                        "User ID is required"
-                });
+                return res.status(400).json({ success: false, message: "User ID is required" });
             }
 
-            // CURRENT DATE
+            const q = question.trim().toLowerCase();
 
-            const [dateResult] =
-                await db.promise().query(
-                    `SELECT CURDATE() AS today`
-                );
-
-            const today =
-                dateResult[0].today;
-
-            // LOGGED-IN USER
-
-            const [users] =
-                await db.promise().query(
-                    `
-                    SELECT
-                        user_id,
-                        name,
-                        email
-                    FROM users
-                    WHERE user_id = ?
-                    `,
-                    [user_id]
-                );
-
+            // --- FETCH USER ---
+            const [users] = await db.promise().query(
+                "SELECT user_id, name, email FROM users WHERE user_id = ?",
+                [user_id]
+            );
             if (users.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message:
-                        "User not found"
-                });
+                return res.status(404).json({ success: false, message: "User not found" });
             }
-
-            const currentUser =
-                users[0];
-
-            // MEDICINES
-
-            const [medicines] =
-                await db.promise().query(
-                    `
-                    SELECT
-                        medicine_id,
-                        medicine_name,
-                        company_name,
-                        batch_no,
-                        expiry_date,
-                        quantity,
-                        price
-                    FROM medicines
-                    WHERE user_id = ?
-                    ORDER BY medicine_name ASC
-                    `,
-                    [user_id]
-                );
-
-            // CUSTOMERS / BILL ITEMS
-
-            const [customers] =
-                await db.promise().query(
-                    `
-                    SELECT
-                        c.customer_item_id,
-                        c.invoice_no,
-                        c.customer_id,
-                        c.customer_name,
-                        c.mobile,
-                        c.doctor_name,
-                        c.medicine_id,
-                        m.medicine_name,
-                        m.company_name,
-                        m.price,
-                        c.quantity,
-                        c.total_amount,
-                        c.visit_date,
-                        c.bill_status
-                    FROM customers c
-                    LEFT JOIN medicines m
-                        ON c.medicine_id =
-                           m.medicine_id
-                    WHERE c.user_id = ?
-                    ORDER BY c.visit_date DESC
-                    `,
-                    [user_id]
-                );
-
-            // LOW STOCK
-
-            const lowStockMedicines =
-                medicines.filter(
-                    medicine =>
-                        Number(
-                            medicine.quantity
-                        ) <= 10
-                );
-
-            // EXPIRED MEDICINES
-
-            const expiredMedicines =
-                medicines.filter(
-                    medicine => {
-                        if (
-                            !medicine.expiry_date
-                        ) {
-                            return false;
-                        }
-
-                        return (
-                            new Date(
-                                medicine.expiry_date
-                            ) <
-                            new Date(today)
-                        );
-                    }
-                );
-
-            // UNIQUE CUSTOMERS
-
-            const uniqueCustomers =
-                new Set(
-                    customers.map(
-                        customer =>
-                            customer.customer_id
-                    )
-                );
-
-            // UNIQUE INVOICES
-
-            const uniqueInvoices =
-                new Set(
-                    customers
-                        .map(
-                            customer =>
-                                customer.invoice_no
-                        )
-                        .filter(Boolean)
-                );
-
-            // TOTAL SALES
-
-            const totalSales =
-                customers.reduce(
-                    (total, customer) => {
-                        return (
-                            total +
-                            Number(
-                                customer.total_amount ||
-                                0
-                            )
-                        );
-                    },
-                    0
-                );
-
-            // TOTAL MEDICINE STOCK
-
-            const totalMedicineUnits =
-                medicines.reduce(
-                    (total, medicine) => {
-                        return (
-                            total +
-                            Number(
-                                medicine.quantity ||
-                                0
-                            )
-                        );
-                    },
-                    0
-                );
-
-            // MEDISTOCK DATA
-
-            const medistockData = {
-                current_user: {
-                    user_id:
-                        currentUser.user_id,
-                    name:
-                        currentUser.name,
-                    email:
-                        currentUser.email
-                },
-
-                summary: {
-                    total_medicine_types:
-                        medicines.length,
-
-                    total_medicine_units:
-                        totalMedicineUnits,
-
-                    low_stock_count:
-                        lowStockMedicines.length,
-
-                    expired_medicine_count:
-                        expiredMedicines.length,
-
-                    total_customers:
-                        uniqueCustomers.size,
-
-                    total_invoice_count:
-                        uniqueInvoices.size,
-
-                    total_bill_items:
-                        customers.length,
-
-                    total_sales:
-                        totalSales
-                },
-
-                medicines: {
-                    all: medicines,
-
-                    low_stock:
-                        lowStockMedicines,
-
-                    expired:
-                        expiredMedicines
-                },
-
-                customers: {
-                    all: customers
-                },
-
-                invoices: {
-                    all: customers
-                }
-            };
-
-            // SYSTEM PROMPT
-
-            const systemPrompt = `
-You are "MediStock Assistant".
-
-You are the personalized AI assistant of the
-MediStock Inventory Management System.
-
-The user is currently logged into MediStock.
-
-Your job is to answer ANY natural-language question
-related to the MediStock Inventory System.
-
-There is NO fixed question list.
-
-The user can ask the same thing using different
-words or sentence structures. Understand the meaning
-of the question instead of checking for exact keywords.
-
-==========================================
-MEDISTOCK TOPICS
-==========================================
-
-You can answer questions about:
-
-- Login
-- Registration
-- Dashboard
-- Medicines
-- Medicine stock
-- Medicine quantity
-- Medicine price
-- Medicine company
-- Batch number
-- Expiry date
-- Low stock
-- Expired medicines
-- Adding medicines
-- Editing medicines
-- Deleting medicines
-- Customers
-- Customer details
-- Customer history
-- Bills
-- Invoices
-- Invoice details
-- Sales
-- Total sales
-- Searching records
-- Profile
-- MediStock system usage
-- General MediStock functionality
-
-==========================================
-IMPORTANT DATA RULES
-==========================================
-
-1. The database data below belongs ONLY to the
-   CURRENT LOGGED-IN USER.
-
-2. Always answer using the current user's data.
-
-3. NEVER mix data from another user.
-
-4. NEVER invent medicine names, quantities,
-   prices, customers, invoices or sales.
-
-5. If the question asks for actual database data,
-   use the provided database information.
-
-6. If the requested database information does not
-   exist in the provided data, say:
-
-   "This information is not available in your
-   MediStock data."
-
-7. If the question is about how to use MediStock,
-   answer normally using your knowledge of the
-   MediStock system.
-
-8. Understand natural language.
-
-9. For medicine stock questions, use the actual
-   quantity from the database.
-
-10. LOW STOCK RULE:
-    A medicine is considered low stock when:
-    quantity <= 10
-
-11. EXPIRED RULE:
-    A medicine is expired when:
-    expiry_date < today's date
-
-12. Today's database date is:
-    ${today}
-
-13. For count questions, give the correct number.
-
-14. For list questions, give the relevant names.
-
-15. For price questions, give the actual price.
-
-16. For company questions, give the actual company.
-
-17. For expiry questions, give the actual expiry date.
-
-18. For customer questions, use actual database
-    information.
-
-19. For invoice questions, use actual invoice data.
-
-20. For sales questions, use actual sales data.
-
-21. Keep answers SHORT and clear.
-
-22. Normally answer in 1-2 sentences.
-
-23. If the user asks for a list, provide a short list.
-
-24. Do not give unnecessary explanations.
-
-==========================================
-GENERAL MEDISTOCK KNOWLEDGE
-==========================================
-
-Login:
-The user can login using the Login page with their
-registered credentials.
-
-Register:
-A new user can create an account using the Register page.
-
-Add Medicine:
-The user can go to Medicines, enter medicine details
-and click Add Medicine.
-
-Medicine Management:
-The Medicines page allows the user to manage medicine
-records and stock.
-
-Customers:
-The Customers page is used to enter customer and
-medicine/billing information.
-
-History:
-The History page displays previous customer/bill records
-and allows the user to search history.
-
-Dashboard:
-The Dashboard provides an overview of MediStock data.
-
-Profile:
-The Profile page contains the logged-in user's information.
-
-==========================================
-CURRENT USER DATA
-==========================================
-
-${JSON.stringify(medistockData, null, 2)}
-
-==========================================
-FINAL INSTRUCTION
-==========================================
-
-Answer the user's question directly.
-
-Do not say that you need a fixed question list.
-
-Do not ask the user to provide database data when
-the required data is already present above.
-
-Do not invent information.
-
-Keep the response concise.
-`;
-
-            // OPENROUTER API
-
-            const response = await fetch(
-                "https://openrouter.ai/api/v1/chat/completions",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                            "application/json",
-
-                        "Authorization":
-                            `Bearer ${process.env.OPENROUTER_API_KEY}`
-                    },
-
-                    body: JSON.stringify({
-                        model:
-                            "openai/gpt-4o-mini",
-
-                        messages: [
-                            {
-                                role: "system",
-                                content:
-                                    systemPrompt
-                            },
-                            {
-                                role: "user",
-                                content:
-                                    question.trim()
-                            }
-                        ],
-
-                        temperature: 0,
-
-                        max_tokens: 150
-                    })
-                }
+            const currentUser = users[0];
+
+            // --- FETCH MEDICINES ---
+            const [medicines] = await db.promise().query(
+                `SELECT medicine_id, medicine_name, company_name, batch_no,
+                        expiry_date, quantity, price
+                 FROM medicines WHERE user_id = ? ORDER BY medicine_name ASC`,
+                [user_id]
             );
 
-            // OPENROUTER RESPONSE
+            // --- FETCH CUSTOMERS / BILLS ---
+            const [customers] = await db.promise().query(
+                `SELECT c.customer_id, c.customer_name, c.mobile, c.doctor_name,
+                        c.medicine_id, m.medicine_name, c.quantity, c.total_amount,
+                        c.visit_date, c.bill_status, c.invoice_no
+                 FROM customers c
+                 LEFT JOIN medicines m ON c.medicine_id = m.medicine_id
+                 WHERE c.user_id = ? ORDER BY c.visit_date DESC`,
+                [user_id]
+            );
 
-            const data =
-                await response.json();
+            // --- COMPUTED STATS ---
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            // API ERROR
+            const lowStock      = medicines.filter(m => Number(m.quantity) <= 10);
+            const outOfStock    = medicines.filter(m => Number(m.quantity) === 0);
+            const expiredMeds   = medicines.filter(m => m.expiry_date && new Date(m.expiry_date) < today);
+            const totalUnits    = medicines.reduce((s, m) => s + Number(m.quantity || 0), 0);
+            const totalSales    = customers.reduce((s, c) => s + Number(c.total_amount || 0), 0);
+            const uniqueCusts   = new Set(customers.map(c => c.customer_id)).size;
+            const uniqueInvs    = new Set(customers.map(c => c.invoice_no).filter(Boolean)).size;
 
-            if (!response.ok) {
-                console.log(
-                    "OpenRouter Error:",
-                    data
+            // =====================================================
+            // INTENT MATCHING HELPER
+            // =====================================================
+            const has = (...words) => words.some(w => q.includes(w));
+
+            // =====================================================
+            // RULE-BASED ANSWER ENGINE
+            // =====================================================
+            let answer = null;
+
+            // ---- GREETINGS ----
+            if (has("hi", "hello", "hey", "good morning", "good evening", "good afternoon", "howdy", "sup", "what's up")) {
+                answer = `Hello ${currentUser.name}! 👋 I'm your MediStock Assistant. You can ask me about medicines, stock, customers, sales, expired items, and more!`;
+            }
+
+            // ---- ABOUT / HELP ----
+            else if (has("who are you", "what are you", "what can you do", "help", "what do you know", "capabilities")) {
+                answer = `I'm MediStock Assistant 🤖. I can answer questions about:\n• Medicine stock & quantities\n• Low stock or expired medicines\n• Customer & invoice information\n• Sales & billing totals\n• Medicine prices & companies`;
+            }
+
+            // ---- HOW MANY MEDICINES (types) ----
+            else if (
+                (has("how many") && has("medicine", "medicines", "type", "types", "item", "items", "product", "products")) ||
+                (has("total") && has("medicine", "medicines") && !has("stock", "unit", "units", "quantity"))
+            ) {
+                answer = `You have **${medicines.length}** medicine type(s) in stock.`;
+            }
+
+            // ---- TOTAL STOCK / UNITS ----
+            else if (has("total stock", "total units", "total quantity", "all stock", "overall stock")) {
+                answer = `Your total medicine stock is **${totalUnits}** units across ${medicines.length} medicine type(s).`;
+            }
+
+            // ---- SPECIFIC MEDICINE QUANTITY ----
+            else if (has("quantity", "stock", "how much", "how many") && has("medicine", "of")) {
+                // Try to match a medicine name in the question
+                const matched = medicines.find(m =>
+                    q.includes(m.medicine_name.toLowerCase())
                 );
-
-                return res.status(500).json({
-                    success: false,
-                    message:
-                        "Chatbot AI service error"
-                });
+                if (matched) {
+                    answer = `**${matched.medicine_name}** currently has **${matched.quantity}** units in stock.`;
+                } else if (medicines.length === 0) {
+                    answer = "You have no medicines in your inventory yet.";
+                } else {
+                    answer = `You have **${medicines.length}** medicine type(s) with a total of **${totalUnits}** units.\n\nTo check a specific medicine's stock, mention its name (e.g., "how many Paracetamol do I have?").`;
+                }
             }
 
-            // AI ANSWER
-
-            const answer =
-                data?.choices?.[0]
-                    ?.message?.content;
-
-            if (!answer) {
-                return res.status(500).json({
-                    success: false,
-                    message:
-                        "No answer received from chatbot"
-                });
+            // ---- LOW STOCK ----
+            else if (has("low stock", "low", "running out", "almost out", "reorder", "less stock", "shortage")) {
+                if (lowStock.length === 0) {
+                    answer = "✅ No medicines are currently low on stock (all above 10 units).";
+                } else {
+                    const list = lowStock.map(m => `• ${m.medicine_name} — ${m.quantity} units`).join("\n");
+                    answer = `⚠️ **${lowStock.length}** medicine(s) are low on stock (≤10 units):\n${list}`;
+                }
             }
 
-            // SEND ANSWER
+            // ---- OUT OF STOCK ----
+            else if (has("out of stock", "zero stock", "no stock", "empty", "finished")) {
+                if (outOfStock.length === 0) {
+                    answer = "✅ No medicines are currently out of stock.";
+                } else {
+                    const list = outOfStock.map(m => `• ${m.medicine_name}`).join("\n");
+                    answer = `🚫 **${outOfStock.length}** medicine(s) are out of stock:\n${list}`;
+                }
+            }
 
-            return res.json({
-                success: true,
-                answer: answer.trim()
-            });
+            // ---- EXPIRED MEDICINES ----
+            else if (has("expired", "expiry", "expire", "expiring", "past date", "old medicine")) {
+                if (expiredMeds.length === 0) {
+                    answer = "✅ No expired medicines found in your inventory.";
+                } else {
+                    const list = expiredMeds.map(m => {
+                        const d = new Date(m.expiry_date).toLocaleDateString("en-IN");
+                        return `• ${m.medicine_name} — expired on ${d}`;
+                    }).join("\n");
+                    answer = `🔴 **${expiredMeds.length}** expired medicine(s):\n${list}`;
+                }
+            }
+
+            // ---- LIST ALL MEDICINES ----
+            else if (
+                has("list", "show", "all medicines", "medicine list", "what medicines", "which medicines", "my medicines") ||
+                (has("all") && has("medicine", "medicines"))
+            ) {
+                if (medicines.length === 0) {
+                    answer = "You have no medicines in your inventory yet.";
+                } else {
+                    const list = medicines.slice(0, 15).map(m =>
+                        `• ${m.medicine_name} (${m.company_name}) — Qty: ${m.quantity}, ₹${m.price}`
+                    ).join("\n");
+                    const more = medicines.length > 15 ? `\n...and ${medicines.length - 15} more.` : "";
+                    answer = `📋 Your medicines (${medicines.length} total):\n${list}${more}`;
+                }
+            }
+
+            // ---- MEDICINE PRICE ----
+            else if (has("price", "cost", "rate", "how much does", "how much is")) {
+                const matched = medicines.find(m => q.includes(m.medicine_name.toLowerCase()));
+                if (matched) {
+                    answer = `**${matched.medicine_name}** is priced at **₹${matched.price}** per unit.`;
+                } else {
+                    const list = medicines.slice(0, 10).map(m =>
+                        `• ${m.medicine_name} — ₹${m.price}`
+                    ).join("\n");
+                    answer = medicines.length === 0
+                        ? "No medicines found in your inventory."
+                        : `Here are some medicine prices:\n${list}`;
+                }
+            }
+
+            // ---- MEDICINE COMPANY ----
+            else if (has("company", "manufacturer", "brand", "made by", "produced by")) {
+                const matched = medicines.find(m => q.includes(m.medicine_name.toLowerCase()));
+                if (matched) {
+                    answer = `**${matched.medicine_name}** is manufactured by **${matched.company_name}**.`;
+                } else {
+                    const list = medicines.slice(0, 10).map(m =>
+                        `• ${m.medicine_name} — ${m.company_name}`
+                    ).join("\n");
+                    answer = medicines.length === 0
+                        ? "No medicines found."
+                        : `Medicine companies:\n${list}`;
+                }
+            }
+
+            // ---- EXPIRY DATE ----
+            else if (has("expiry date", "expire date", "when does", "when will", "when expire", "batch")) {
+                const matched = medicines.find(m => q.includes(m.medicine_name.toLowerCase()));
+                if (matched) {
+                    const d = matched.expiry_date
+                        ? new Date(matched.expiry_date).toLocaleDateString("en-IN")
+                        : "N/A";
+                    answer = `**${matched.medicine_name}** expires on **${d}** (Batch: ${matched.batch_no || "N/A"}).`;
+                } else {
+                    answer = "Please mention the medicine name to get its expiry date.";
+                }
+            }
+
+            // ---- CUSTOMERS ----
+            else if (has("customer", "customers", "patient", "patients", "client", "clients")) {
+                if (has("how many", "count", "total", "number")) {
+                    answer = `You have **${uniqueCusts}** unique customer(s) on record.`;
+                } else if (has("list", "show", "all", "who")) {
+                    const names = [...new Set(customers.map(c => c.customer_name))].slice(0, 15);
+                    answer = names.length === 0
+                        ? "No customers found."
+                        : `👥 Customers (${uniqueCusts} total):\n${names.map(n => `• ${n}`).join("\n")}`;
+                } else {
+                    answer = `You have **${uniqueCusts}** unique customer(s) and **${uniqueInvs}** invoice(s) on record.`;
+                }
+            }
+
+            // ---- SALES / REVENUE ----
+            else if (has("sales", "revenue", "total sales", "earnings", "income", "total amount", "how much sold", "billing")) {
+                answer = `💰 Total sales: **₹${totalSales.toFixed(2)}** from **${uniqueInvs}** invoice(s).`;
+            }
+
+            // ---- INVOICES ----
+            else if (has("invoice", "invoices", "bill", "bills")) {
+                if (has("how many", "count", "total")) {
+                    answer = `You have **${uniqueInvs}** invoice(s) generated so far.`;
+                } else if (has("recent", "latest", "last")) {
+                    const recent = customers.slice(0, 5);
+                    if (recent.length === 0) {
+                        answer = "No invoices found.";
+                    } else {
+                        const list = recent.map(c =>
+                            `• Invoice ${c.invoice_no || "N/A"} — ${c.customer_name}, ₹${c.total_amount}`
+                        ).join("\n");
+                        answer = `📄 Recent invoices:\n${list}`;
+                    }
+                } else {
+                    answer = `You have **${uniqueInvs}** invoice(s) with a total sales of **₹${totalSales.toFixed(2)}**.`;
+                }
+            }
+
+            // ---- DASHBOARD ----
+            else if (has("dashboard", "summary", "overview", "stats", "statistics")) {
+                answer = `📊 **MediStock Summary for ${currentUser.name}:**\n` +
+                    `• Medicines: ${medicines.length} types, ${totalUnits} units\n` +
+                    `• Low stock: ${lowStock.length} medicine(s)\n` +
+                    `• Expired: ${expiredMeds.length} medicine(s)\n` +
+                    `• Customers: ${uniqueCusts}\n` +
+                    `• Invoices: ${uniqueInvs}\n` +
+                    `• Total sales: ₹${totalSales.toFixed(2)}`;
+            }
+
+            // ---- USER / PROFILE ----
+            else if (has("my name", "who am i", "profile", "account", "my account", "my email", "logged in as")) {
+                answer = `You are logged in as **${currentUser.name}** (${currentUser.email}).`;
+            }
+
+            // ---- THANK YOU ----
+            else if (has("thank", "thanks", "thank you", "thx", "ty")) {
+                answer = `You're welcome, ${currentUser.name}! 😊 Let me know if you need anything else.`;
+            }
+
+            // ---- GOODBYE ----
+            else if (has("bye", "goodbye", "see you", "exit", "logout")) {
+                answer = `Goodbye, ${currentUser.name}! 👋 Have a great day!`;
+            }
+
+            // ---- SPECIFIC MEDICINE INFO (catch-all name lookup) ----
+            else {
+                const matched = medicines.find(m => q.includes(m.medicine_name.toLowerCase()));
+                if (matched) {
+                    const exp = matched.expiry_date
+                        ? new Date(matched.expiry_date).toLocaleDateString("en-IN")
+                        : "N/A";
+                    answer = `📦 **${matched.medicine_name}**\n` +
+                        `• Company: ${matched.company_name}\n` +
+                        `• Quantity: ${matched.quantity} units\n` +
+                        `• Price: ₹${matched.price}\n` +
+                        `• Batch: ${matched.batch_no || "N/A"}\n` +
+                        `• Expiry: ${exp}`;
+                } else {
+                    answer = `I'm not sure about that. You can ask me:\n` +
+                        `• "How many medicines do I have?"\n` +
+                        `• "Show low stock medicines"\n` +
+                        `• "Show expired medicines"\n` +
+                        `• "Total sales"\n` +
+                        `• "How many customers?"\n` +
+                        `• Medicine name for full details`;
+                }
+            }
+
+            return res.json({ success: true, answer });
 
         } catch (error) {
-            console.error(
-                "Chatbot Error:",
-                error
-            );
-
+            console.error("Chatbot Error:", error);
             return res.status(500).json({
                 success: false,
-                message:
-                    "Chatbot server error"
+                message: "Chatbot server error"
             });
         }
     }
 );
+
 
 // =====================================================
 // HOME / SERVER TEST ROUTE
