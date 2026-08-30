@@ -1,0 +1,637 @@
+/* =====================================================
+   GENERAL
+===================================================== */
+
+.home-page {
+  width: 100%;
+  overflow-x: hidden;
+  font-family: Arial, sans-serif;
+  color: #183b4a;
+  background: #f4fbfe;
+}
+
+.home-page *,
+.home-page *::before,
+.home-page *::after {
+  box-sizing: border-box;
+}
+
+.home-page h1,
+.home-page h2,
+.home-page h3,
+.home-page p {
+  margin-top: 0;
+}
+
+
+/* =====================================================
+   HERO BANNER
+===================================================== */
+
+.home-hero {
+  width: 100%;
+  height: 450px;
+  overflow: hidden;
+  background: #eaf7fc;
+  margin-top: 100px;
+}
+
+.home-banner {
+  width: 100%;
+  height: 500px;
+  display: block;
+  object-fit: cover;
+}
+
+
+/* =====================================================
+   INTRODUCTION
+===================================================== */
+
+.home-intro {
+  width: 100%;
+  padding: 60px 20px;
+  text-align: center;
+  background: white;
+}
+
+.home-intro h2 {
+  margin-bottom: 18px;
+  color: #0878d1;
+  font-size: 30px;
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+}
+
+.home-intro p {
+  max-width: 850px;
+  margin: auto;
+  color: #667780;
+  font-size: 16px;
+  line-height: 1.7;
+
+}
+
+
+/* =====================================================
+   FEATURES
+===================================================== */
+
+.home-features {
+  width: 100%;
+  padding: 60px 6%;
+  text-align: center;
+  background: #eef8fc;
+}
+
+.home-features h2,
+.home-how h2,
+.home-benefits h2 {
+  margin-bottom: 12px;
+  color: #0878d1;
+  font-size: 30px;
+  font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+}
+
+.section-text {
+  margin-bottom: 35px;
+  color: #6b7d85;
+  font-size: 16px;
+}
+
+.feature-grid {
+  max-width: 1100px;
+  margin: auto;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 25px;
+}
+
+.feature-box {
+  padding: 30px 22px;
+
+  background: white;
+
+  border: 1px solid #dceff6;
+  border-radius: 12px;
+
+  box-shadow: 0 5px 15px rgba(0, 90, 130, 0.10);
+
+  transition: 0.3s;
+}
+
+.feature-box:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 22px rgba(0, 90, 130, 0.16);
+}
+
+.feature-icon {
+  margin-bottom: 15px;
+
+  font-size: 38px;
+
+  color: #19a9df;
+}
+
+.feature-box h3 {
+  margin-bottom: 10px;
+  color: #0878d1;
+  font-size: 19px;
+  font-family:Arial, Helvetica, sans-serif;
+}
+
+.feature-box p {
+  margin-bottom: 0;
+  color: #667780;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+
+/* =====================================================
+   HOW MEDISTOCK WORKS
+===================================================== */
+
+.home-how {
+  width: 100%;
+  padding: 60px 6%;
+  text-align: center;
+  background: white;
+}
+
+.steps-grid {
+  max-width: 1100px;
+  margin: auto;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 20px;
+}
+
+.work-step {
+  padding: 28px 20px;
+
+  background: #f4fbfe;
+
+  border: 1px solid #d7edf5;
+  border-radius: 12px;
+
+  transition: 0.3s;
+}
+
+.work-step:hover {
+  transform: translateY(-5px);
+}
+
+.work-step span {
+  display: block;
+  margin-bottom: 12px;
+
+  color: #19a9df;
+
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.work-step h3 {
+  margin-bottom: 10px;
+
+  color: #0878d1;
+  font-size: 19px;
+}
+
+.work-step p {
+  margin-bottom: 0;
+
+  color: #667780;
+  line-height: 1.5;
+}
+
+
+/* =====================================================
+   BENEFITS
+===================================================== */
+
+.home-benefits {
+  width: 100%;
+  padding: 60px 6%;
+  text-align: center;
+  background: #eef8fc;
+}
+
+.benefit-grid {
+  max-width: 900px;
+  margin: 35px auto 0;
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 18px;
+}
+
+.benefit-box {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 18px 20px;
+
+  background: white;
+
+  border-radius: 10px;
+
+  box-shadow: 0 4px 12px rgba(0, 80, 120, 0.08);
+
+  color: #315765;
+
+  text-align: left;
+
+  transition: 0.3s;
+}
+
+.benefit-box:hover {
+  transform: translateY(-3px);
+}
+
+.benefit-box svg {
+  color: #19a9df;
+  font-size: 20px;
+}
+
+
+/* =====================================================
+   CTA
+===================================================== */
+
+.home-cta {
+  width: 100%;
+  padding: 60px 20px;
+
+  text-align: center;
+
+  background: linear-gradient(
+    135deg,
+    #0878d1,
+    #19a9df
+  );
+
+  color: white;
+}
+
+.cta-content {
+  max-width: 800px;
+  margin: auto;
+}
+
+.home-cta h2 {
+  margin-bottom: 15px;
+
+  color: white;
+  font-size: 30px;
+}
+
+.home-cta p {
+  margin-bottom: 25px;
+
+  color: white;
+
+  font-size: 16px;
+}
+
+.cta-button {
+  display: inline-block;
+
+  padding: 13px 28px;
+
+  background: white;
+  color: #0878d1;
+
+  border-radius: 6px;
+
+  text-decoration: none;
+
+  font-weight: bold;
+
+  transition: 0.3s;
+}
+
+.cta-button:hover {
+  background: #eaf8fd;
+  transform: translateY(-2px);
+}
+
+
+/* =====================================================
+   FOOTER
+===================================================== */
+
+.home-footer {
+  width: 100%;
+
+  background: #123f4d;
+
+  color: white;
+
+  border-top: 4px solid #19b5e5;
+
+  margin-top: 20px;
+}
+
+
+/* FOOTER MAIN */
+
+.footer-main {
+  width: 90%;
+  max-width: 1150px;
+
+  margin: auto;
+
+  padding: 50px 0 40px;
+
+  display: grid;
+
+  grid-template-columns: 1.3fr 1fr 1fr;
+
+  gap: 60px;
+}
+
+
+/* FOOTER BRAND */
+
+.footer-brand h2 {
+  margin-bottom: 12px;
+
+  color: white;
+
+  font-family: Georgia, serif;
+
+  font-size: 30px;
+}
+
+.footer-tagline {
+  margin-bottom: 12px;
+
+  color: #d9f1f7;
+
+  font-size: 15px;
+}
+
+.footer-description {
+  max-width: 330px;
+
+  color: #a9cbd5;
+
+  font-size: 14px;
+
+  line-height: 1.6;
+}
+
+
+/* FOOTER HEADINGS */
+
+.footer-column h3 {
+  margin-bottom: 20px;
+
+  color: white;
+
+  font-family: Georgia, serif;
+
+  font-size: 21px;
+}
+
+.footer-column h3::after {
+  content: "";
+
+  display: block;
+
+  width: 38px;
+  height: 3px;
+
+  margin-top: 8px;
+
+  background: #19b5e5;
+
+  border-radius: 5px;
+}
+
+
+/* FOOTER LINKS */
+
+.footer-link-grid {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 13px 25px;
+}
+
+.footer-link-grid a {
+  color: #c9e5ed;
+
+  text-decoration: none;
+
+  font-size: 14px;
+
+  transition: 0.3s;
+}
+
+.footer-link-grid a::before {
+  content: "›";
+
+  margin-right: 7px;
+
+  color: #19b5e5;
+
+  font-weight: bold;
+}
+
+.footer-link-grid a:hover {
+  color: white;
+  padding-left: 4px;
+}
+
+
+/* CONTACT */
+
+.contact-item {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin-bottom: 15px;
+
+  color: #c9e5ed;
+
+  font-size: 14px;
+
+  line-height: 1.5;
+}
+
+.contact-item svg {
+  flex-shrink: 0;
+
+  margin-top: 3px;
+
+  color: #19b5e5;
+
+  font-size: 16px;
+}
+
+
+/* FOOTER BOTTOM */
+
+.footer-bottom {
+  width: 90%;
+  max-width: 1150px;
+
+  margin: auto;
+
+  padding: 18px 0;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.20);
+
+  text-align: center;
+}
+
+.footer-bottom p {
+  margin: 0;
+
+  color: #a9cbd5;
+
+  font-size: 13px;
+}
+
+
+/* =====================================================
+   TABLET RESPONSIVE
+===================================================== */
+
+@media (max-width: 900px) {
+
+  .home-hero,
+  .home-banner {
+    height: 420px;
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .steps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .footer-main {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 40px;
+  }
+
+  .footer-brand {
+    grid-column: span 2;
+  }
+
+}
+
+
+/* =====================================================
+   MOBILE RESPONSIVE
+===================================================== */
+
+@media (max-width: 600px) {
+
+  .home-hero,
+  .home-banner {
+    height: 250px;
+  }
+
+
+  .home-intro,
+  .home-features,
+  .home-how,
+  .home-benefits {
+    padding: 45px 20px;
+  }
+
+
+  .home-intro h2,
+  .home-features h2,
+  .home-how h2,
+  .home-benefits h2,
+  .home-cta h2 {
+    font-size: 24px;
+  }
+
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  .footer-main {
+    width: 85%;
+
+    grid-template-columns: 1fr;
+
+    gap: 35px;
+
+    padding: 40px 0 30px;
+  }
+
+
+  .footer-brand {
+    grid-column: auto;
+  }
+
+
+  .footer-link-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+
+  .footer-bottom {
+    width: 85%;
+  }
+
+}
+
+
+/* =====================================================
+   SMALL MOBILE
+===================================================== */
+
+@media (max-width: 400px) {
+
+  .home-hero,
+  .home-banner {
+    height: 210px;
+  }
+
+  .footer-link-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-main {
+    width: 90%;
+  }
+
+  .footer-bottom {
+    width: 90%;
+  }
+
+}
