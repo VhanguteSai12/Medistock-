@@ -2277,7 +2277,14 @@ Keep the response concise.
     }
 
 });
-
+// HOME / SERVER TEST ROUTE
+app.get("/", (req, res) => {
+    res.json({
+        success: true,
+        message: "MediStock Backend is Live 🚀",
+        status: "Running"
+    });
+});
 // SERVER
 
 const PORT = process.env.PORT || 1000;
