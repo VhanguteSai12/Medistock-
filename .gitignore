@@ -1,10 +1,10 @@
 # Root workspace files (not part of the project)
 *.docx
 *.code-workspace
-Home_page.png
-home.css
-home.jsx
-index.html
+/Home_page.png
+/home.css
+/home.jsx
+/index.html
 
 # Dependencies
 node_modules/
