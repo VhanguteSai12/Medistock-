@@ -3,12 +3,13 @@ import axios from "axios";
 
 import "../css/Login.css";
 import Navbar from "../components/Navbar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   // ================= API URL =================
   const API_URL = import.meta.env.VITE_API_URL;
@@ -78,10 +79,8 @@ function Login() {
           response.data.user.user_id
         );
 
-        alert(response.data.message || "Login Successful");
-
-        setEmail("");
-        setPassword("");
+        // Redirect to dashboard immediately after login
+        navigate("/dashboard");
       }
 
     } catch (error) {
