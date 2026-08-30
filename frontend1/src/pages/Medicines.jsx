@@ -280,7 +280,8 @@ function Medicines() {
 
     // ================= UI =================
     return (
-        <>
+        <div className="dashboard-layout">
+            <Sidebar />
 
             <div className="medicine-container">
 
@@ -551,14 +552,12 @@ function Medicines() {
 
             {/* ================= FOOTER ================= */}
             <footer>
-
                 <p>
-                    © 2026 MediStock Inventory System
+                    &copy; 2026 MediStock Inventory System
                 </p>
-
             </footer>
 
-        </>
+        </div>
     );
 }
 
