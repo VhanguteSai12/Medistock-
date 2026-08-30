@@ -144,6 +144,8 @@ app.post("/register", async (req, res) => {
                             userEmail
                         );
 
+                        // ---- EMAIL SENDING COMMENTED OUT (re-enable when needed) ----
+                        /*
                         const mailOptions = {
                             from: `"MediStock" <${process.env.EMAIL_USER}>`,
                             to: userEmail,
@@ -224,6 +226,12 @@ app.post("/register", async (req, res) => {
                                     "Registration successful! (Confirmation email could not be sent)"
                             });
                         }
+                        */
+                        // ---- END EMAIL BLOCK ----
+
+                        return res.status(201).json({
+                            message: "Registration successful!"
+                        });
                     }
                 );
             } catch (error) {
