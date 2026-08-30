@@ -2009,6 +2009,10 @@ Keep the response concise.
 // HOME / SERVER TEST ROUTE
 // =====================================================
 
+app.get("/health", (req, res) => {
+    res.json({ status: "ok", version: "1.2.0", timestamp: new Date().toISOString() });
+});
+
 app.get("/", (req, res) => {
     res.json({
         success: true,
