@@ -5,9 +5,36 @@ const bcrypt = require("bcrypt");
 const cors = require("cors");
 const nodemailer = require("nodemailer");
 
+// =====================================================
+// APP + CORS CONFIG
+// =====================================================
+
 const app = express();
 
-app.use(cors());
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://medistock.saispv2007.workers.dev",
+    "https://medistock-frontend.pages.dev"
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (Postman, mobile apps)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            return callback(null, true);
+        }
+        // Allow any *.pages.dev or *.workers.dev subdomain
+        if (origin.endsWith(".pages.dev") || origin.endsWith(".workers.dev")) {
+            return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json());
 
 const db = require("./db");
@@ -1990,13 +2017,21 @@ app.get("/", (req, res) => {
         status: "Running"
     });
 });
-
-// =====================================================
 // SERVER
 // =====================================================
 
-const PORT =
-    process.env.PORT || 1000;
+// Keep-alive ping — prevents Render free tier from sleeping
+// Frontend pings this every 14 minutes
+app.get("/ping", (req, res) => {
+    res.json({ status: "alive", timestamp: new Date().toISOString() });
+});
+
+// Home / health check route
+app.get("/", (req, res) => {
+    res.json({ success: true, message: "MediStock Backend is Live 🚀", status: "Running" });
+});
+
+const PORT = process.env.PORT || 1000;
 
 app.listen(
     PORT,

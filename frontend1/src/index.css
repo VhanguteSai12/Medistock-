@@ -1,16 +1,23 @@
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-html,
-body,
-#root{
-  width:100%;
-  margin:0;
-  padding:0;
-  overflow-x:hidden;
+html {
   background-color: #f4f8fb;
+}
 
+body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* NOTE: overflow-x:hidden on body MUST NOT be set —
+     it breaks position:fixed elements (Sidebar) in Chrome/Safari */
+  background-color: #f4f8fb;
+}
+
+#root {
+  width: 100%;
+  /* overflow-x:hidden removed — breaks fixed positioning */
 }
