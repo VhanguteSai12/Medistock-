@@ -17,20 +17,12 @@ app.use(express.json());
 // =====================================================
 
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "medistock"
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 3306
 });
-
-db.connect((err) => {
-  if (err) {
-    console.log("Database Connection Failed:", err);
-  } else {
-    console.log("Database Connected Successfully");
-  }
-});
-
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
@@ -2288,11 +2280,8 @@ Keep the response concise.
 
 // SERVER
 
+const PORT = process.env.PORT || 1000;
 
-app.listen(1000, () => {
-
-    console.log(
-        "Server running on port 1000"
-    );
-
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
 });
