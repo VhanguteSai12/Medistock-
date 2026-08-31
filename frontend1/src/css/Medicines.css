@@ -16,7 +16,7 @@ body,
 }
 
 body {
-    overflow-x: hidden;
+    /* overflow-x:hidden removed — breaks position:fixed Sidebar */
 }
 
 

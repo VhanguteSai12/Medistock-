@@ -81,6 +81,8 @@ function Login() {
 
         // Redirect to dashboard immediately after login
         navigate("/dashboard");
+      } else {
+        alert(response.data.message || "Login failed");
       }
 
     } catch (error) {

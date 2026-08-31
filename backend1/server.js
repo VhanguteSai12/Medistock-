@@ -1,4 +1,4 @@
-﻿require("dotenv").config();
+require("dotenv").config();
 
 const express = require("express");
 const bcrypt = require("bcrypt");
@@ -264,6 +264,7 @@ app.post("/login", (req, res) => {
         async (err, result) => {
             if (err) {
                 return res.status(500).json({
+                    message: "Database Error: Could not connect to the database",
                     error: err
                 });
             }
