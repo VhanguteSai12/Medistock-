@@ -15,9 +15,7 @@ body,
     min-height: 100%;
 }
 
-body {
-    /* overflow-x:hidden removed — breaks position:fixed Sidebar */
-}
+/* overflow-x:hidden intentionally omitted from body — breaks position:fixed Sidebar */
 
 
 /* =========================================

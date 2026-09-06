@@ -20,12 +20,10 @@ import "../css/HomePage.css";
 function Home() {
   return (
     <>
-      {/* ================= NAVBAR ================= */}
       <Navbar />
 
       <div className="home-page">
 
-        {/* ================= HERO ================= */}
         <section className="home-hero">
           <img
             src="/bannerfinal.png"
@@ -34,7 +32,7 @@ function Home() {
           />
         </section>
 
-        {/* ================= INTRODUCTION ================= */}
+      
         <section className="home-intro">
           <h2>
             Everything You Need to Manage Your Medical Store
@@ -47,7 +45,6 @@ function Home() {
           </p>
         </section>
 
-        {/* ================= FEATURES ================= */}
         <section className="home-features">
 
           <h2>
@@ -118,7 +115,6 @@ function Home() {
           </div>
         </section>
 
-        {/* ================= HOW MEDISTOCK WORKS ================= */}
         <section className="home-how">
 
           <h2>How MediStock Works</h2>
@@ -164,7 +160,7 @@ function Home() {
           </div>
         </section>
 
-        {/* ================= BENEFITS ================= */}
+  
         <section className="home-benefits">
 
           <h2>Why Choose MediStock?</h2>
@@ -194,7 +190,6 @@ function Home() {
           </div>
         </section>
 
-        {/* ================= CTA ================= */}
         <section className="home-cta">
 
           <div className="cta-content">
@@ -218,7 +213,6 @@ function Home() {
           </div>
         </section>
 
-        {/* ================= FOOTER ================= */}
         <div className="home-footer">
 
           <div className="footer-main">
@@ -239,7 +233,6 @@ function Home() {
 
             </div>
 
-            {/* QUICK LINKS */}
             <div className="footer-column">
 
               <h3>Quick Links</h3>
@@ -284,7 +277,6 @@ function Home() {
 
           </div>
 
-          {/* COPYRIGHT */}
           <div className="footer-bottom">
 
             <p>

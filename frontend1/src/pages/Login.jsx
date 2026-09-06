@@ -8,7 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // ================= API URL =================
@@ -18,11 +18,6 @@ function Login() {
   const validateEmail = (email) => {
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     return gmailRegex.test(email);
-  };
-
-  // ================= EMAIL CLICK =================
-  const handleEmailClick = () => {
-    // Email click validation can remain empty
   };
 
   // ================= PASSWORD CLICK =================
@@ -41,7 +36,8 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    console.log("Login button clicked");
+    // Prevent double submit
+    if (isSubmitting) return;
 
     // ================= EMAIL =================
     if (email.trim() === "") {
@@ -61,6 +57,8 @@ function Login() {
     }
 
     // ================= API REQUEST =================
+    setIsSubmitting(true);
+
     try {
       const response = await axios.post(
         `${API_URL}/login`,
@@ -69,8 +67,6 @@ function Login() {
           password: password,
         }
       );
-
-      console.log(response.data);
 
       // ================= SAVE USER ID =================
       if (response.data.user && response.data.user.user_id) {
@@ -97,8 +93,11 @@ function Login() {
 
       // ================= SERVER CONNECTION ERROR =================
       else {
-        alert("Server is not connected");
+        alert("Server is not connected. Please try again later.");
       }
+
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -129,7 +128,6 @@ function Login() {
                 placeholder="example@gmail.com"
                 value={email}
                 autoComplete="new-email"
-                onClick={handleEmailClick}
                 onChange={(e) => setEmail(e.target.value)}
               />
 
@@ -143,7 +141,7 @@ function Login() {
               <div className="password-box">
 
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type="password"
                   placeholder="Enter password"
                   value={password}
                   autoComplete="new-password"
@@ -158,8 +156,11 @@ function Login() {
             </div>
 
             {/* ================= LOGIN BUTTON ================= */}
-            <button type="submit">
-              Login
+            <button
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Logging in..." : "Login"}
             </button>
 
           </form>

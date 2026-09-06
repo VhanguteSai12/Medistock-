@@ -19,6 +19,10 @@ function Customers() {
     const [doctorName, setDoctorName] = useState("");
     const [visitDate, setVisitDate] = useState("");
 
+    // ================= EXISTING CUSTOMER LOCK =================
+    // true = customer ID found in DB → ID & Name are locked (readonly)
+    const [isExistingCustomer, setIsExistingCustomer] = useState(false);
+
     // ================= MEDICINE DETAILS =================
     const [medicines, setMedicines] = useState([]);
     const [medicineId, setMedicineId] = useState("");
@@ -29,86 +33,149 @@ function Customers() {
     const [grandTotal, setGrandTotal] = useState(0);
 
     const [loading, setLoading] = useState(false);
+    const [medicineLoading, setMedicineLoading] = useState(false);
 
-    // ================= TODAY'S DATE =================
+    // ================= TODAY DATE =================
     const today = new Date().toISOString().split("T")[0];
 
-    // ================= LOAD MEDICINES =================
+    // =====================================================
+    // LOAD MEDICINES
+    // =====================================================
     useEffect(() => {
 
-        if (!user_id)
+        if (!user_id) {
+            alert("User not logged in");
             return;
+        }
+
+        if (!API_URL) {
+            alert("API URL is not configured");
+            console.error("VITE_API_URL is missing");
+            return;
+        }
 
         loadMedicines();
 
     }, []);
 
+    // =====================================================
+    // MEDICINE OPTIONS
+    // =====================================================
     const medicineOptions = medicines.map((medicine) => ({
         value: medicine.medicine_id,
-        label: `${medicine.medicine_name} | ₹${medicine.price} | Stock : ${medicine.quantity}`
+        label: `${medicine.medicine_name} | ₹${medicine.price} | Stock: ${medicine.quantity}`
     }));
 
-    // ================= LOAD MEDICINES =================
+    // =====================================================
+    // LOAD MEDICINES
+    // =====================================================
     const loadMedicines = async () => {
+
+        setMedicineLoading(true);
 
         try {
 
-            const res = await axios.get(
+            const response = await axios.get(
                 `${API_URL}/medicines/${user_id}`
             );
 
-            setMedicines(res.data);
+            if (Array.isArray(response.data)) {
 
-        } catch (err) {
+                setMedicines(response.data);
 
-            console.log(err);
-            alert("Unable To Load Medicines");
+            } else {
+
+                console.error("Invalid medicines response:", response.data);
+
+                setMedicines([]);
+
+                alert("Unable to load medicines");
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Load Medicines Error:",
+                error.response?.data || error.message
+            );
+
+            setMedicines([]);
+
+            alert(
+                error.response?.data?.message ||
+                "Unable to load medicines"
+            );
+
+        } finally {
+
+            setMedicineLoading(false);
 
         }
     };
 
-    // ================= SEARCH EXISTING CUSTOMER =================
+    // =====================================================
+    // SEARCH EXISTING CUSTOMER
+    // =====================================================
     const searchCustomer = async () => {
 
-        if (customerId.trim() === "")
+        if (!customerId.trim()) {
             return;
+        }
 
         try {
 
-            const res = await axios.get(
-                `${API_URL}/customer/${user_id}/${customerId}`
+            const response = await axios.get(
+                `${API_URL}/customer/${user_id}/${encodeURIComponent(customerId.trim())}`
             );
 
-            if (res.data.exists) {
+            console.log("Customer Search Response:", response.data);
 
-                setCustomerName(
-                    res.data.customer.customer_name
-                );
+            if (response.data?.exists && response.data?.customer) {
 
-                setMobile(
-                    res.data.customer.mobile
-                );
+                const customer = response.data.customer;
 
-                setDoctorName(
-                    res.data.customer.doctor_name
-                );
+                // Lock Customer ID & Name — they match DB record
+                setCustomerName(customer.customer_name || "");
+                setIsExistingCustomer(true);
+
+                // Pre-fill other fields (user can still edit these)
+                setMobile(customer.mobile || "");
+                setDoctorName(customer.doctor_name || "");
+
+                if (customer.visit_date) {
+                    const date = String(customer.visit_date).substring(0, 10);
+                    setVisitDate(date);
+                }
 
             } else {
 
+                // New customer — unlock all fields
+                setIsExistingCustomer(false);
                 setCustomerName("");
                 setMobile("");
                 setDoctorName("");
 
             }
 
-        } catch (err) {
+        } catch (error) {
 
-            console.log(err);
+            console.error(
+                "Customer Search Error:",
+                error.response?.data || error.message
+            );
+
+            setIsExistingCustomer(false);
+            setCustomerName("");
+            setMobile("");
+            setDoctorName("");
 
         }
     };
 
-    // ================= MOBILE VALIDATION =================
+    // =====================================================
+    // MOBILE VALIDATION
+    // =====================================================
     const validateMobile = () => {
 
         const regex = /^[6-9][0-9]{9}$/;
@@ -117,52 +184,55 @@ function Customers() {
 
     };
 
-    // ================= GRAND TOTAL =================
+    // =====================================================
+    // CALCULATE GRAND TOTAL
+    // =====================================================
     const calculateGrandTotal = (items) => {
 
-        let total = 0;
-
-        items.forEach((item) => {
-
-            total += Number(item.total_amount);
-
-        });
+        const total = items.reduce(
+            (sum, item) => {
+                return sum + Number(item.total_amount || 0);
+            },
+            0
+        );
 
         setGrandTotal(total);
 
     };
 
-    // ================= FORM VALIDATION =================
+    // =====================================================
+    // FORM VALIDATION
+    // =====================================================
     const validateForm = () => {
 
-        if (customerId.trim() === "") {
+        if (!customerId.trim()) {
             alert("Please Enter Customer ID");
             return false;
         }
 
-        if (customerName.trim() === "") {
+        if (!customerName.trim()) {
             alert("Please Enter Customer Name");
             return false;
         }
 
-        if (mobile.trim() === "") {
+        if (!mobile.trim()) {
             alert("Please Enter Mobile Number");
             return false;
         }
 
         if (!validateMobile()) {
             alert(
-                "Mobile Number must be 10 digits and start with 6,7,8 or 9"
+                "Mobile Number must be 10 digits and start with 6, 7, 8 or 9"
             );
             return false;
         }
 
-        if (doctorName.trim() === "") {
+        if (!doctorName.trim()) {
             alert("Please Enter Doctor Name");
             return false;
         }
 
-        if (visitDate === "") {
+        if (!visitDate) {
             alert("Please Select Visit Date");
             return false;
         }
@@ -172,75 +242,72 @@ function Customers() {
             return false;
         }
 
-        if (quantity === "") {
+        if (!quantity) {
             alert("Please Enter Quantity");
             return false;
         }
 
-        if (Number(quantity) <= 0) {
-            alert("Quantity Must Be Greater Than Zero");
+        const qty = Number(quantity);
+
+        if (!Number.isInteger(qty) || qty <= 0) {
+            alert("Quantity must be a positive whole number");
             return false;
         }
 
         return true;
     };
 
-    // ================= ADD MEDICINE =================
+    // =====================================================
+    // ADD MEDICINE
+    // =====================================================
     const addMedicine = () => {
 
-        if (!validateForm())
+        if (!validateForm()) {
             return;
+        }
 
         const selectedMedicine = medicines.find(
-            item => item.medicine_id == medicineId
+            (medicine) =>
+                String(medicine.medicine_id) === String(medicineId)
         );
 
         if (!selectedMedicine) {
-
             alert("Medicine Not Found");
             return;
-
         }
 
-        // Prevent Duplicate Medicine
-        const alreadyAdded = billItems.find(
-            item => item.medicine_id == medicineId
+        const qty = Number(quantity);
+        const stock = Number(selectedMedicine.quantity);
+
+        // Check stock
+        if (qty > stock) {
+            alert(
+                `Insufficient Stock\nAvailable Stock: ${stock}`
+            );
+            return;
+        }
+
+        // Prevent duplicate medicine
+        const alreadyAdded = billItems.some(
+            (item) =>
+                String(item.medicine_id) === String(medicineId)
         );
 
         if (alreadyAdded) {
-
             alert("Medicine Already Added");
             return;
-
         }
 
-        // Check Stock
-        if (
-            Number(quantity) >
-            Number(selectedMedicine.quantity)
-        ) {
+        const price = Number(selectedMedicine.price);
 
-            alert("Insufficient Stock");
-            return;
-
-        }
-
-        const total =
-            Number(selectedMedicine.price) *
-            Number(quantity);
+        const total = price * qty;
 
         const newItem = {
-
             medicine_id: selectedMedicine.medicine_id,
-
             medicine_name: selectedMedicine.medicine_name,
-
-            quantity: Number(quantity),
-
-            price: Number(selectedMedicine.price),
-
+            quantity: qty,
+            price: price,
             total_amount: total
-
         };
 
         const updatedBill = [
@@ -252,82 +319,160 @@ function Customers() {
 
         calculateGrandTotal(updatedBill);
 
+        // Clear medicine inputs
         setMedicineId("");
         setQuantity("");
 
     };
 
-    // ================= GENERATE BILL =================
+    // =====================================================
+    // GENERATE BILL
+    // =====================================================
     const generateBill = async () => {
 
-        if (billItems.length === 0) {
+        // Check login
+        if (!user_id) {
+            alert("User session expired. Please login again.");
+            return;
+        }
 
+        // Check bill
+        if (billItems.length === 0) {
             alert("Please Add At Least One Medicine");
             return;
+        }
 
+        // Validate customer information
+        if (!customerId.trim()) {
+            alert("Please Enter Customer ID");
+            return;
+        }
+
+        if (!customerName.trim()) {
+            alert("Please Enter Customer Name");
+            return;
+        }
+
+        if (!validateMobile()) {
+            alert("Please Enter a Valid Mobile Number");
+            return;
+        }
+
+        if (!doctorName.trim()) {
+            alert("Please Enter Doctor Name");
+            return;
+        }
+
+        if (!visitDate) {
+            alert("Please Select Visit Date");
+            return;
         }
 
         setLoading(true);
 
         try {
 
+            // =================================================
+            // PAYLOAD SENT TO BACKEND
+            // =================================================
             const payload = {
 
-                customer_id: customerId,
-                customer_name: customerName,
-                mobile: mobile,
-                doctor_name: doctorName,
+                customer_id: customerId.trim(),
+
+                customer_name: customerName.trim(),
+
+                mobile: mobile.trim(),
+
+                doctor_name: doctorName.trim(),
+
                 visit_date: visitDate,
+
                 user_id: user_id,
 
                 items: billItems.map((item) => ({
-
                     medicine_id: item.medicine_id,
-                    quantity: item.quantity
-
+                    quantity: Number(item.quantity)
                 }))
 
             };
 
-            const res = await axios.post(
-                `${API_URL}/customers/generate-bill`,
+            console.log(
+                "Generate Bill Payload:",
                 payload
             );
 
-            if (res.data.success) {
+            const response = await axios.post(
+                `${API_URL}/customers/generate-bill`,
+                payload,
+                {
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    timeout: 30000
+                }
+            );
+
+            console.log(
+                "Generate Bill Response:",
+                response.data
+            );
+
+            // =================================================
+            // SUCCESS
+            // =================================================
+            if (response.data?.success) {
 
                 alert(
-                    `Bill Generated Successfully\nInvoice No : ${res.data.invoice_no}`
+                    `Bill Generated Successfully\n\nInvoice No: ${response.data.invoice_no}`
                 );
 
+                // Clear form
                 newCustomer();
 
-                loadMedicines();
+                // Reload latest stock
+                await loadMedicines();
 
             } else {
 
-                alert(res.data.message);
+                alert(
+                    response.data?.message ||
+                    "Unable to generate bill"
+                );
 
             }
 
-        } catch (err) {
+        } catch (error) {
 
-            console.log(err);
-            alert("Server Error");
+            console.error(
+                "Generate Bill Error:",
+                error.response?.data || error.message
+            );
+
+            if (error.response?.data?.message) {
+                alert(error.response.data.message);
+            } else if (error.response?.data) {
+                alert("Bill generation failed. Please try again.");
+            } else if (error.code === "ECONNABORTED") {
+                alert("Request timed out. Please check your server connection.");
+            } else {
+                alert("Unable to connect to the server. Is the backend running?");
+            }
 
         } finally {
 
             setLoading(false);
 
         }
-
     };
 
-    // ================= REMOVE MEDICINE =================
+    // =====================================================
+    // REMOVE MEDICINE
+    // =====================================================
     const removeMedicine = (medicine_id) => {
 
         const updatedBill = billItems.filter(
-            (item) => item.medicine_id !== medicine_id
+            (item) =>
+                String(item.medicine_id) !== String(medicine_id)
         );
 
         setBillItems(updatedBill);
@@ -336,7 +481,9 @@ function Customers() {
 
     };
 
-    // ================= NEW CUSTOMER =================
+    // =====================================================
+    // NEW CUSTOMER
+    // =====================================================
     const newCustomer = () => {
 
         setCustomerId("");
@@ -344,6 +491,8 @@ function Customers() {
         setMobile("");
         setDoctorName("");
         setVisitDate("");
+
+        setIsExistingCustomer(false);
 
         setMedicineId("");
         setQuantity("");
@@ -354,8 +503,12 @@ function Customers() {
 
     };
 
+    // =====================================================
+    // RENDER
+    // =====================================================
     return (
         <>
+
             <div className="customers-container">
 
                 <Sidebar />
@@ -364,48 +517,72 @@ function Customers() {
                     Customer Billing
                 </h2>
 
-                {/* ================= CUSTOMER DETAILS ================= */}
+                {/* ==========================================
+                    CUSTOMER DETAILS
+                ========================================== */}
+
                 <div className="customer-card">
 
-                    <h3>Customer Details</h3>
+                    <h3>
+                        Customer Details
+                    </h3>
 
                     <div className="form-grid">
 
-                        <input
-                            type="text"
-                            placeholder="Customer ID"
-                            value={customerId}
-                            onChange={(e) =>
-                                setCustomerId(e.target.value)
-                            }
-                            onBlur={searchCustomer}
-                        />
+                        {/* ---- CUSTOMER ID (locked if existing) ---- */}
+                        <div className="input-with-badge">
+                            <input
+                                type="text"
+                                placeholder="Customer ID"
+                                value={customerId}
+                                readOnly={isExistingCustomer}
+                                className={isExistingCustomer ? "input-locked" : ""}
+                                onChange={(e) => {
+                                    setCustomerId(e.target.value);
+                                    // Reset lock when user clears/changes the ID
+                                    setIsExistingCustomer(false);
+                                    setCustomerName("");
+                                }}
+                                onBlur={searchCustomer}
+                            />
+                            {isExistingCustomer && (
+                                <span className="locked-badge">🔒 Existing</span>
+                            )}
+                        </div>
 
-                        <input
-                            type="text"
-                            placeholder="Customer Name"
-                            value={customerName}
-                            onChange={(e) =>
-                                setCustomerName(e.target.value)
-                            }
-                        />
+                        {/* ---- CUSTOMER NAME (locked if existing) ---- */}
+                        <div className="input-with-badge">
+                            <input
+                                type="text"
+                                placeholder="Customer Name"
+                                value={customerName}
+                                readOnly={isExistingCustomer}
+                                className={isExistingCustomer ? "input-locked" : ""}
+                                onChange={(e) =>
+                                    setCustomerName(e.target.value)
+                                }
+                            />
+                            {isExistingCustomer && (
+                                <span className="locked-badge">🔒 Locked</span>
+                            )}
+                        </div>
 
+                        {/* ---- MOBILE (always editable) ---- */}
                         <input
                             type="text"
                             placeholder="Mobile Number"
                             maxLength={10}
                             value={mobile}
                             onChange={(e) => {
-
                                 const value =
                                     e.target.value.replace(/\D/g, "");
-
-                                if (value.length <= 10)
+                                if (value.length <= 10) {
                                     setMobile(value);
-
+                                }
                             }}
                         />
 
+                        {/* ---- DOCTOR NAME (always editable) ---- */}
                         <input
                             type="text"
                             placeholder="Doctor Name"
@@ -415,6 +592,7 @@ function Customers() {
                             }
                         />
 
+                        {/* ---- VISIT DATE (always editable) ---- */}
                         <input
                             type="date"
                             value={visitDate}
@@ -428,31 +606,47 @@ function Customers() {
 
                 </div>
 
-                {/* ================= MEDICINE SECTION ================= */}
+                {/* ==========================================
+                    MEDICINE SECTION
+                ========================================== */}
+
                 <div className="medicine-card">
 
-                    <h3>Add Medicine</h3>
+                    <h3>
+                        Add Medicine
+                    </h3>
 
                     <div className="form-grid">
 
                         <Select
                             options={medicineOptions}
-                            placeholder="Search Medicine..."
+                            placeholder={
+                                medicineLoading
+                                    ? "Loading Medicines..."
+                                    : "Search Medicine..."
+                            }
                             isSearchable
+                            isClearable
+                            isDisabled={medicineLoading}
                             value={
                                 medicineOptions.find(
-                                    option =>
-                                        option.value == medicineId
+                                    (option) =>
+                                        String(option.value) ===
+                                        String(medicineId)
                                 ) || null
                             }
                             onChange={(selectedOption) => {
 
                                 if (selectedOption) {
+
                                     setMedicineId(
                                         selectedOption.value
                                     );
+
                                 } else {
+
                                     setMedicineId("");
+
                                 }
 
                             }}
@@ -462,15 +656,28 @@ function Customers() {
                             type="number"
                             placeholder="Quantity"
                             min="1"
+                            step="1"
                             value={quantity}
-                            onChange={(e) =>
-                                setQuantity(e.target.value)
-                            }
+                            onChange={(e) => {
+
+                                const value =
+                                    e.target.value;
+
+                                if (
+                                    value === "" ||
+                                    /^[0-9]+$/.test(value)
+                                ) {
+                                    setQuantity(value);
+                                }
+
+                            }}
                         />
 
                         <button
+                            type="button"
                             className="add-btn"
                             onClick={addMedicine}
+                            disabled={medicineLoading}
                         >
                             Add Medicine
                         </button>
@@ -479,21 +686,42 @@ function Customers() {
 
                 </div>
 
-                {/* ================= BILL TABLE ================= */}
+                {/* ==========================================
+                    CURRENT BILL
+                ========================================== */}
+
                 <div className="bill-card">
 
-                    <h3>Current Bill</h3>
+                    <h3>
+                        Current Bill
+                    </h3>
 
                     <table>
 
                         <thead>
 
                             <tr>
-                                <th>Medicine</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                                <th>Action</th>
+
+                                <th>
+                                    Medicine
+                                </th>
+
+                                <th>
+                                    Quantity
+                                </th>
+
+                                <th>
+                                    Price
+                                </th>
+
+                                <th>
+                                    Total
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
                             </tr>
 
                         </thead>
@@ -530,16 +758,17 @@ function Customers() {
                                         </td>
 
                                         <td>
-                                            ₹ {item.price}
+                                            ₹ {Number(item.price).toFixed(2)}
                                         </td>
 
                                         <td>
-                                            ₹ {item.total_amount}
+                                            ₹ {Number(item.total_amount).toFixed(2)}
                                         </td>
 
                                         <td>
 
                                             <button
+                                                type="button"
                                                 className="delete-btn"
                                                 onClick={() =>
                                                     removeMedicine(
@@ -564,31 +793,44 @@ function Customers() {
 
                 </div>
 
-                {/* ================= GRAND TOTAL ================= */}
+                {/* ==========================================
+                    GRAND TOTAL
+                ========================================== */}
+
                 <div className="total-card">
 
                     <h2>
-                        Grand Total : ₹ {grandTotal}
+                        Grand Total : ₹ {grandTotal.toFixed(2)}
                     </h2>
 
                 </div>
 
-                {/* ================= GENERATE BILL ================= */}
+                {/* ==========================================
+                    GENERATE BILL
+                ========================================== */}
+
                 <div className="button-group">
 
                     <button
+                        type="button"
                         className="invoice-btn"
                         onClick={generateBill}
-                        disabled={loading}
+                        disabled={
+                            loading ||
+                            billItems.length === 0
+                        }
                     >
+
                         {loading
                             ? "Generating..."
                             : "Generate Bill"}
+
                     </button>
 
                 </div>
 
             </div>
+
         </>
     );
 }

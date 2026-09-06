@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
 
 import "../css/Register.css";
 import Navbar from "../components/Navbar";
@@ -10,6 +11,8 @@ function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const navigate = useNavigate();
 
   // ================= API URL =================
   const API_URL = import.meta.env.VITE_API_URL;
@@ -91,13 +94,16 @@ function Register() {
         setEmail("");
         setPassword("");
         setConfirmPassword("");
+
+        // Redirect to login after successful registration
+        navigate("/login");
       }
 
     } catch (error) {
 
       // ================= USER ALREADY EXISTS =================
       if (error.response && error.response.status === 409) {
-        alert("User already exists");
+        alert("User already exists. Please login instead.");
       }
 
       // ================= BACKEND ERROR =================
@@ -109,7 +115,7 @@ function Register() {
 
       // ================= SERVER ERROR =================
       else {
-        alert("Server is not connected");
+        alert("Server is not connected. Please try again later.");
       }
 
     } finally {
@@ -215,6 +221,14 @@ function Register() {
             </button>
 
           </form>
+
+          {/* ================= LOGIN LINK ================= */}
+          <div className="register-link">
+            <p>
+              Already have an account?{" "}
+              <Link to="/login">Login</Link>
+            </p>
+          </div>
 
         </div>
 

@@ -45,26 +45,21 @@ function Navbar() {
           </Link>
         </li>
 
-        {/* Show Login/Register only when NOT logged in */}
-        {!isLoggedIn && (
-          <>
-            <li>
-              <FaUserPlus color="white" />
-              <Link to="/register">
-                  Register
-              </Link>
-            </li>
+        <li>
+          <FaUserPlus color="white" />
+          <Link to="/register">
+              Register
+          </Link>
+        </li>
 
-            <li>
-              <FaSignInAlt color="white" />
-              <Link to="/login">
-                  Login
-              </Link>
-            </li>
-          </>
-        )}
+        <li>
+          <FaSignInAlt color="white" />
+          <Link to="/login">
+              Login
+          </Link>
+        </li>
 
-        {/* Show Dashboard only when logged in */}
+        {/* Show Dashboard when logged in */}
         {isLoggedIn && (
           <li>
             <FaTachometerAlt color="white" />
