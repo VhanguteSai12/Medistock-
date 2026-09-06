@@ -3,7 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const bcrypt = require("bcrypt");
 const cors = require("cors");
-const nodemailer = require("nodemailer");
+const https = require("https");
 const db = require("./db");
 
 const app = express();
@@ -50,21 +50,62 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 
 // =====================================================
-// EMAIL TRANSPORTER
+// EMAIL CLIENT (Brevo HTTP API — works on Render free tier)
 // =====================================================
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: {
-        user: process.env.SMTP_USER || process.env.EMAIL_USER,
-        pass: process.env.SMTP_PASSWORD || process.env.EMAIL_PASSWORD
-    },
-    tls: {
-        rejectUnauthorized: false
-    }
-});
+/**
+ * sendBrevoEmail — sends via Brevo transactional HTTP API (no SMTP needed)
+ * @param {string} toEmail
+ * @param {string} toName
+ * @param {string} subject
+ * @param {string} htmlContent
+ * @returns {Promise<{ok: boolean, error?: string}>}
+ */
+function sendBrevoEmail(toEmail, toName, subject, htmlContent) {
+    return new Promise((resolve) => {
+        const apiKey = process.env.BREVO_API_KEY;
+        if (!apiKey) {
+            return resolve({ ok: false, error: "BREVO_API_KEY not set" });
+        }
+
+        const senderName  = process.env.EMAIL_SENDER_NAME  || "MediStock";
+        const senderEmail = process.env.EMAIL_SENDER_EMAIL || "noreply@medistock.com";
+
+        const payload = JSON.stringify({
+            sender  : { name: senderName, email: senderEmail },
+            to      : [{ email: toEmail, name: toName || toEmail }],
+            subject,
+            htmlContent
+        });
+
+        const options = {
+            hostname: "api.brevo.com",
+            path    : "/v3/smtp/email",
+            method  : "POST",
+            headers : {
+                "api-key"       : apiKey,
+                "Content-Type"  : "application/json",
+                "Content-Length": Buffer.byteLength(payload)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let body = "";
+            res.on("data", (chunk) => { body += chunk; });
+            res.on("end", () => {
+                if (res.statusCode >= 200 && res.statusCode < 300) {
+                    resolve({ ok: true });
+                } else {
+                    resolve({ ok: false, error: `Brevo HTTP ${res.statusCode}: ${body}` });
+                }
+            });
+        });
+
+        req.on("error", (err) => resolve({ ok: false, error: err.message }));
+        req.write(payload);
+        req.end();
+    });
+}
 
 // =====================================================
 // REGISTER API
@@ -148,86 +189,42 @@ app.post("/register", async (req, res) => {
                             userEmail
                         );
 
-                        // Send welcome email
+                        // Send welcome email via Brevo HTTP API (works on Render free tier)
                         try {
-                            const fromEmail =
-                                process.env.EMAIL_FROM ||
-                                process.env.EMAIL_USER ||
-                                process.env.SMTP_USER;
+                            const welcomeHtml = `
+                                <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:30px;border:1px solid #e0e0e0;border-radius:10px;">
+                                    <h2 style="color:#2e86de;text-align:center;">Welcome to MediStock 🏥</h2>
+                                    <p style="font-size:16px;">Hello <strong>${userName}</strong>,</p>
+                                    <p style="font-size:15px;color:#333;">
+                                        Your registration for <strong>MediStock Inventory System</strong> has been completed successfully.
+                                    </p>
+                                    <hr style="border:none;border-top:1px solid #eee;"/>
+                                    <p style="font-size:13px;color:#888;text-align:center;">
+                                        Thank you for registering with MediStock.<br/>
+                                        <strong>MediStock Team</strong>
+                                    </p>
+                                </div>
+                            `;
 
-                            if (!fromEmail) {
+                            const emailResult = await sendBrevoEmail(
+                                userEmail,
+                                userName,
+                                "MediStock Registration Successful",
+                                welcomeHtml
+                            );
+
+                            if (!emailResult.ok) {
+                                console.warn("Email skipped:", emailResult.error);
+                                // Registration succeeded — don't fail the response
                                 return res.status(201).json({
-                                    message:
-                                        "Registration successful! Confirmation email is not configured."
+                                    message: "Registration successful! Confirmation email could not be sent."
                                 });
                             }
 
-                            const mailOptions = {
-                                from: `"MediStock" <${fromEmail}>`,
-                                to: userEmail,
-                                subject:
-                                    "MediStock Registration Successful",
-                                html: `
-                                    <div style="
-                                        font-family: Arial, sans-serif;
-                                        max-width: 600px;
-                                        margin: auto;
-                                        padding: 30px;
-                                        border: 1px solid #e0e0e0;
-                                        border-radius: 10px;
-                                    ">
-                                        <h2 style="
-                                            color: #2e86de;
-                                            text-align: center;
-                                        ">
-                                            Welcome to MediStock 🏥
-                                        </h2>
-
-                                        <p style="font-size: 16px;">
-                                            Hello
-                                            <strong>${userName}</strong>,
-                                        </p>
-
-                                        <p style="
-                                            font-size: 15px;
-                                            color: #333;
-                                        ">
-                                            Your registration for
-                                            <strong>
-                                                MediStock Inventory System
-                                            </strong>
-                                            has been completed successfully.
-                                        </p>
-
-                                        <hr style="
-                                            border: none;
-                                            border-top: 1px solid #eee;
-                                        " />
-
-                                        <p style="
-                                            font-size: 13px;
-                                            color: #888;
-                                            text-align: center;
-                                        ">
-                                            Thank you for registering with
-                                            MediStock.
-                                            <br />
-                                            <strong>MediStock Team</strong>
-                                        </p>
-                                    </div>
-                                `
-                            };
-
-                            await transporter.sendMail(mailOptions);
-
-                            console.log(
-                                "Registration email sent to:",
-                                userEmail
-                            );
+                            console.log("Registration email sent to:", userEmail);
 
                             return res.status(201).json({
-                                message:
-                                    "Registration successful! A confirmation email has been sent to your inbox."
+                                message: "Registration successful! A confirmation email has been sent to your inbox."
                             });
                         } catch (emailError) {
                             console.error(
@@ -2248,26 +2245,22 @@ app.post("/send-email", async (req, res) => {
             });
         }
 
-        const fromEmail =
-            process.env.EMAIL_FROM ||
-            process.env.EMAIL_USER ||
-            process.env.SMTP_USER;
+        const result = await sendBrevoEmail(
+            String(to).trim(),
+            "",
+            subject || "MediStock Test Email",
+            `<p>${String(message)}</p>`
+        );
 
-        if (!fromEmail) {
+        if (!result.ok) {
+            console.error("Brevo error:", result.error);
             return res.status(500).json({
                 success: false,
-                message: "Email configuration is missing"
+                message: result.error || "Failed to send email"
             });
         }
 
-        const info = await transporter.sendMail({
-            from: `"MediStock" <${fromEmail}>`,
-            to: String(to).trim(),
-            subject: subject || "MediStock Test Email",
-            text: String(message)
-        });
-
-        console.log("Email sent:", info.messageId);
+        console.log("Email sent to:", to);
 
         return res.json({
             success: true,
