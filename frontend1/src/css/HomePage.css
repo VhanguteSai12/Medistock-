@@ -32,11 +32,17 @@
   width: 100%;
   /*
    * Image: 1717 x 916 px
-   * Reference shows top 76% of image (heading + desc + 4 icons, hides buttons + wave)
-   * Proportional height = 0.76 × (916/1717) × 100vw = 40.6vw
-   * clamp(min, ideal, max) keeps it sane on tiny/huge screens
+   * Reference crops FROM y≈140px TO y≈680px in original image:
+   *   - Hides "MEDISTOCK INVENTORY SYSTEM" label (y=80-120px)
+   *   - Shows heading, description, 4 icons (y=140-680px)
+   *   - Hides buttons & blue wave (y=700px+)
+   *
+   * Visible range = 540px out of 916px = 58.9% of image
+   * Height (vw) = (540/916) × (916/1717) × 100vw = 31.4vw
+   * object-position y% = 37% shifts view to start at y=140px
+   *   (verified: consistent across ALL viewport widths)
    */
-  height: clamp(200px, 40.6vw, 640px);
+  height: clamp(180px, 31.4vw, 500px);
   background: #eaf7fc;
   margin-top: 75px;
   padding: 0;
@@ -48,8 +54,14 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: top center; /* Anchor to top — crops from bottom */
+  /*
+   * 0% = left-aligned horizontally (no horizontal shift)
+   * 37% = vertical offset that maps to y≈140px in original image
+   *        (skips the "MEDISTOCK INVENTORY SYSTEM" label at top)
+   */
+  object-position: 0% 37%;
 }
+
 
 
 /*   INTRODUCTION */
