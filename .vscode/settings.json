@@ -1,0 +1,5 @@
+{
+  // Disable fetching JSON schemas from the internet (schemastore.org)
+  // This prevents the "Unable to load schema" error in package.json
+  "json.schemaDownload.enable": false
+}

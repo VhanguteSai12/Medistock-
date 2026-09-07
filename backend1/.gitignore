@@ -6,3 +6,8 @@ yarn-error.log*
 dist/
 .DS_Store
 .env
+
+# Debug/dev files with credentials - never commit
+db-viewer.js
+db-viewer.html
+inspect_db.js

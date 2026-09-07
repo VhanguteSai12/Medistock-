@@ -30,17 +30,17 @@
 
 .home-hero {
   width: 100%;
-  height: 450px;
-  overflow: hidden;
+  height: auto;
   background: #eaf7fc;
-  margin-top: 100px;
+  margin-top: 75px; /* Matches navbar height to prevent overlap */
+  padding-top: 20px; /* Prevents banner text from cutting off at top */
 }
 
 .home-banner {
   width: 100%;
-  height: 500px;
+  height: auto;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 
@@ -509,9 +509,14 @@
 
 @media (max-width: 900px) {
 
-  .home-hero,
+  .home-hero {
+    height: auto;
+    margin-top: 75px;
+    padding-top: 15px;
+  }
+
   .home-banner {
-    height: 420px;
+    height: auto;
   }
 
   .feature-grid {
@@ -540,12 +545,6 @@
  */
 
 @media (max-width: 600px) {
-
-  .home-hero,
-  .home-banner {
-    height: 250px;
-  }
-
 
   .home-intro,
   .home-features,
@@ -607,16 +606,18 @@
 }
 
 
+@media (max-width: 500px) {
+  .home-hero {
+    margin-top: 110px;
+    padding-top: 10px;
+  }
+}
+
 /* 
    SMALL MOBILE
  */
 
 @media (max-width: 400px) {
-
-  .home-hero,
-  .home-banner {
-    height: 210px;
-  }
 
   .footer-link-grid {
     grid-template-columns: 1fr;
