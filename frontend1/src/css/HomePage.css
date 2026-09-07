@@ -30,7 +30,11 @@
 
 .home-hero {
   width: 100%;
-  height: 420px; /* Fixed height to crop banner like reference */
+  /* Image is 1717x916px. Crop top 75% to hide buttons row + blue wave at bottom.
+     At full width: 916px * 0.75 = ~687px. Using 500px gives a clean crop
+     that shows: MEDISTOCK label, main heading, description, 4 feature icons.
+     Hides: Get Started/View Dashboard buttons + blue wave decoration. */
+  height: 500px;
   background: #eaf7fc;
   margin-top: 75px;
   padding: 0;
@@ -42,7 +46,7 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: top center; /* Show top portion of the image */
+  object-position: top center; /* Anchor to top - crops from the bottom */
 }
 
 
@@ -512,7 +516,8 @@
 @media (max-width: 900px) {
 
   .home-hero {
-    height: 320px; /* Cropped height on tablet */
+    /* At 900px wide: image natural height = 900/1717*916 = ~480px. Show top 79% = ~380px */
+    height: 380px;
     margin-top: 75px;
     padding: 0;
   }
@@ -610,7 +615,8 @@
 
 @media (max-width: 500px) {
   .home-hero {
-    height: 220px; /* Cropped height on small mobile */
+    /* At 500px wide: image natural height = 500/1717*916 = ~267px. Show full = ~260px */
+    height: 260px;
     margin-top: 110px;
     padding: 0;
   }
