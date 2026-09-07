@@ -30,19 +30,19 @@
 
 .home-hero {
   width: 100%;
-  height: auto;
+  height: 420px; /* Fixed height to crop banner like reference */
   background: #eaf7fc;
-  margin-top: 75px; /* Matches navbar height to prevent overlap */
+  margin-top: 75px;
   padding: 0;
   overflow: hidden;
 }
 
 .home-banner {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
   object-fit: cover;
-  object-position: center center;
+  object-position: top center; /* Show top portion of the image */
 }
 
 
@@ -512,13 +512,13 @@
 @media (max-width: 900px) {
 
   .home-hero {
-    height: auto;
+    height: 320px; /* Cropped height on tablet */
     margin-top: 75px;
     padding: 0;
   }
 
   .home-banner {
-    height: auto;
+    height: 100%;
   }
 
   .feature-grid {
@@ -610,8 +610,12 @@
 
 @media (max-width: 500px) {
   .home-hero {
+    height: 220px; /* Cropped height on small mobile */
     margin-top: 110px;
     padding: 0;
+  }
+  .home-banner {
+    height: 100%;
   }
 }
 
