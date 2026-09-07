@@ -30,11 +30,13 @@
 
 .home-hero {
   width: 100%;
-  /* Image is 1717x916px. Crop top 75% to hide buttons row + blue wave at bottom.
-     At full width: 916px * 0.75 = ~687px. Using 500px gives a clean crop
-     that shows: MEDISTOCK label, main heading, description, 4 feature icons.
-     Hides: Get Started/View Dashboard buttons + blue wave decoration. */
-  height: 500px;
+  /*
+   * Image: 1717 x 916 px
+   * Reference shows top 76% of image (heading + desc + 4 icons, hides buttons + wave)
+   * Proportional height = 0.76 × (916/1717) × 100vw = 40.6vw
+   * clamp(min, ideal, max) keeps it sane on tiny/huge screens
+   */
+  height: clamp(200px, 40.6vw, 640px);
   background: #eaf7fc;
   margin-top: 75px;
   padding: 0;
@@ -46,7 +48,7 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: top center; /* Anchor to top - crops from the bottom */
+  object-position: top center; /* Anchor to top — crops from bottom */
 }
 
 
@@ -515,16 +517,7 @@
 
 @media (max-width: 900px) {
 
-  .home-hero {
-    /* At 900px wide: image natural height = 900/1717*916 = ~480px. Show top 79% = ~380px */
-    height: 380px;
-    margin-top: 75px;
-    padding: 0;
-  }
-
-  .home-banner {
-    height: 100%;
-  }
+  /* Banner height handled by clamp() in base styles */
 
   .feature-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -615,13 +608,8 @@
 
 @media (max-width: 500px) {
   .home-hero {
-    /* At 500px wide: image natural height = 500/1717*916 = ~267px. Show full = ~260px */
-    height: 260px;
+    /* clamp() handles size; only override margin for stacked navbar */
     margin-top: 110px;
-    padding: 0;
-  }
-  .home-banner {
-    height: 100%;
   }
 }
 
