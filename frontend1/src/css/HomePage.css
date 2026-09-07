@@ -33,14 +33,16 @@
   height: auto;
   background: #eaf7fc;
   margin-top: 75px; /* Matches navbar height to prevent overlap */
-  padding-top: 20px; /* Prevents banner text from cutting off at top */
+  padding: 0;
+  overflow: hidden;
 }
 
 .home-banner {
   width: 100%;
   height: auto;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center center;
 }
 
 
@@ -512,7 +514,7 @@
   .home-hero {
     height: auto;
     margin-top: 75px;
-    padding-top: 15px;
+    padding: 0;
   }
 
   .home-banner {
@@ -609,7 +611,7 @@
 @media (max-width: 500px) {
   .home-hero {
     margin-top: 110px;
-    padding-top: 10px;
+    padding: 0;
   }
 }
 
